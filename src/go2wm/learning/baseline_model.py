@@ -21,7 +21,7 @@ import numpy as np
 from go2wm.contracts import EpisodeRecord, RGBObservation
 from go2wm.model import ActionBlock, Latent
 
-from .readouts import ridge_fit, ridge_predict
+from .readouts import DEFAULT_ALPHAS, Standardizer, group_folds, ridge_fit, ridge_predict
 from .windows import episode_sequence
 
 
@@ -127,18 +127,29 @@ def encode_episode(
     return np.stack([encoder.encode_array(item) for item in observations]), actions
 
 
+def _encoded(
+    encoder: PooledPixelEncoder,
+    episode: EpisodeRecord,
+    cache: dict[str, tuple[np.ndarray, tuple[ActionBlock, ...]]] | None,
+) -> tuple[np.ndarray, tuple[ActionBlock, ...]]:
+    if cache is not None and episode.episode_id in cache:
+        return cache[episode.episode_id]
+    return encode_episode(encoder, episode)
+
+
 def fit_linear_predictor(
     encoder: PooledPixelEncoder,
     episodes: Iterable[EpisodeRecord],
     *,
     alpha: float = 10.0,
+    encoded: dict[str, tuple[np.ndarray, tuple[ActionBlock, ...]]] | None = None,
 ) -> LinearLatentPredictor:
     """Fit one-step latent dynamics on training episodes (never validation/test)."""
 
     features: list[np.ndarray] = []
     targets: list[np.ndarray] = []
     for episode in episodes:
-        latents, actions = encode_episode(encoder, episode)
+        latents, actions = _encoded(encoder, episode, encoded)
         for t in range(1, len(latents) - 1):
             features.append(
                 np.concatenate(
@@ -150,7 +161,69 @@ def fit_linear_predictor(
         raise ValueError("not enough transitions to fit the linear predictor")
     x = np.stack(features)
     y = np.stack(targets)
-    mean = x.mean(axis=0)
-    scale = np.maximum(x.std(axis=0), 1e-6)
-    weights = ridge_fit((x - mean) / scale, y, alpha=alpha)
-    return LinearLatentPredictor(weights, mean, scale, alpha, encoder.latent_dim)
+    norm = Standardizer.fit(x)
+    weights = ridge_fit(norm.apply(x), y, alpha=alpha)
+    return LinearLatentPredictor(weights, norm.mean, norm.scale, alpha, encoder.latent_dim)
+
+
+def rollout_latent_error(
+    encoder: PooledPixelEncoder,
+    predictor: LinearLatentPredictor,
+    episodes: Iterable[EpisodeRecord],
+    *,
+    horizon: int = 6,
+    encoded: dict[str, tuple[np.ndarray, tuple[ActionBlock, ...]]] | None = None,
+) -> float:
+    """Median latent RMSE after ``horizon`` autoregressive steps over every start."""
+
+    errors: list[float] = []
+    for episode in episodes:
+        latents, actions = _encoded(encoder, episode, encoded)
+        for start in range(1, len(latents) - horizon):
+            previous, current = latents[start - 1], latents[start]
+            with np.errstate(all="ignore"):
+                for step in range(horizon):
+                    previous, current = (
+                        current,
+                        predictor.step(current, previous, actions[start + step]),
+                    )
+                error = float(np.sqrt(np.mean((current - latents[start + horizon]) ** 2)))
+            errors.append(error if np.isfinite(error) else float("inf"))
+    return float(np.median(errors)) if errors else float("inf")
+
+
+def select_predictor_alpha(
+    encoder: PooledPixelEncoder,
+    episodes: Sequence[EpisodeRecord],
+    *,
+    alphas: Sequence[float] = DEFAULT_ALPHAS,
+    folds: int = 5,
+    horizon: int = 6,
+) -> tuple[float, dict[str, float]]:
+    """Episode-grouped CV on training data, scored on the 6-step (3 s) rollout.
+
+    Scoring the full horizon, not one step, rejects penalties whose dynamics are
+    accurate for one block but diverge when rolled out.
+    """
+
+    fold_indices = group_folds([e.episode_id for e in episodes], folds)
+    encoded = {e.episode_id: encode_episode(encoder, e) for e in episodes}
+    scores: dict[str, float] = {}
+    for alpha in alphas:
+        fold_scores = []
+        for held in fold_indices:
+            held_set = set(held.tolist())
+            train = [e for i, e in enumerate(episodes) if i not in held_set]
+            predictor = fit_linear_predictor(encoder, train, alpha=alpha, encoded=encoded)
+            fold_scores.append(
+                rollout_latent_error(
+                    encoder,
+                    predictor,
+                    [episodes[i] for i in held],
+                    horizon=horizon,
+                    encoded=encoded,
+                )
+            )
+        scores[f"{alpha:g}"] = float(np.mean(fold_scores))
+    best = min(alphas, key=lambda a: scores[f"{a:g}"])
+    return float(best), scores

@@ -10,6 +10,7 @@ Layout of one bundle directory::
     planner.json         candidate library and score weights
     reference/input.json   tiny history + candidate packet
     reference/output.json  expected predictions for that packet
+    <extra files>        binary weights (for example ``lewm_weights.pt``), hashed like the rest
 
 The bundle id is derived from the content of every component, so changing any
 member (including the surprise threshold or a planner weight) yields a new id.
@@ -51,9 +52,23 @@ from .readouts import LinearLatentReadout
 BUNDLE_LAYOUT = "go2wm.bundle-dir.v1"
 REFERENCE_TOLERANCE = 1e-6
 
-ComponentLoader = Callable[[dict[str, Any]], Any]
-ENCODER_LOADERS: dict[str, ComponentLoader] = {"pooled_pixels": PooledPixelEncoder.from_dict}
-PREDICTOR_LOADERS: dict[str, ComponentLoader] = {"linear_latent": LinearLatentPredictor.from_dict}
+ComponentLoader = Callable[[dict[str, Any], Path, dict[str, Any]], Any]
+
+
+def _lewm_loader(config: dict[str, Any], root: Path, context: dict[str, Any]) -> Any:
+    from .lewm_adapter import LeWMWorldModel
+
+    return LeWMWorldModel.from_bundle_config(config, root, context)
+
+
+ENCODER_LOADERS: dict[str, ComponentLoader] = {
+    "pooled_pixels": lambda config, root, context: PooledPixelEncoder.from_dict(config),
+    "lewm": _lewm_loader,
+}
+PREDICTOR_LOADERS: dict[str, ComponentLoader] = {
+    "linear_latent": lambda config, root, context: LinearLatentPredictor.from_dict(config),
+    "lewm": _lewm_loader,
+}
 
 
 def register_component_loader(role: str, kind: str, loader: ComponentLoader) -> None:
@@ -191,8 +206,24 @@ def publish_bundle(
     reference_input: ModelInput,
     reference_candidate_count: int = 3,
     latent_dim: int = 192,
+    extra_files: Mapping[str, str | Path] | None = None,
+    reference_tolerance: float = REFERENCE_TOLERANCE,
+    load_context: dict[str, Any] | None = None,
 ) -> LoadedBundle:
-    """Write a bundle directory named by its content-derived id, then verify by reloading."""
+    """Write a bundle directory named by its content-derived id, then verify by reloading.
+
+    ``extra_files`` maps a bundle-relative name to a local file (for example
+    trained weights).  Their SHA-256 enters the bundle id, so new weights always
+    mean a new bundle.  ``reference_tolerance`` bounds the replay difference a
+    consumer accepts; float32 networks need a looser bound across devices.
+    """
+
+    extras = {name: Path(source) for name, source in (extra_files or {}).items()}
+    for name in extras:
+        if "/" in name or name.startswith(".") or name.endswith(".json"):
+            raise ValueError(f"invalid extra file name {name!r}")
+        if not extras[name].is_file():
+            raise FileNotFoundError(extras[name])
 
     components: dict[str, Any] = {
         "encoder.json": {"kind": encoder_kind, "config": encoder.to_dict()},
@@ -217,6 +248,7 @@ def publish_bundle(
         "latent_dim": surprise.latent_dim,
     }
     hashes = {name: _digest(_canonical(value)) for name, value in components.items()}
+    hashes.update({name: _file_digest(source) for name, source in extras.items()})
     surprise_version = "surprise-" + _digest(_canonical(surprise_core))[:12]
     hashes["surprise.core"] = _digest(_canonical(surprise_core))
     bundle_id = "go2wm-" + _digest(_canonical(hashes))[:16]
@@ -244,7 +276,7 @@ def publish_bundle(
     )
     components["reference/output.json"] = {
         "rollouts": reference_output,
-        "tolerance": REFERENCE_TOLERANCE,
+        "tolerance": reference_tolerance,
     }
 
     root = Path(output_root)
@@ -260,6 +292,11 @@ def publish_bundle(
             payload = _canonical(value)
             (staging / name).write_bytes(payload)
             file_hashes[name] = _digest(payload)
+        for name, source in extras.items():
+            shutil.copyfile(source, staging / name)
+            file_hashes[name] = _file_digest(staging / name)
+            if file_hashes[name] != hashes[name]:
+                raise RuntimeError(f"{source} changed while the bundle was being written")
         index = {
             "layout": BUNDLE_LAYOUT,
             "manifest": manifest.to_mapping(),
@@ -275,11 +312,22 @@ def publish_bundle(
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    return load_bundle(target)
+    return load_bundle(target, context=load_context)
 
 
-def load_bundle(path: str | Path, *, expected_bundle_id: str | None = None) -> LoadedBundle:
-    """Verify every checksum, rebuild components, and replay the reference packet."""
+def load_bundle(
+    path: str | Path,
+    *,
+    expected_bundle_id: str | None = None,
+    context: dict[str, Any] | None = None,
+) -> LoadedBundle:
+    """Verify every checksum, rebuild components, and replay the reference packet.
+
+    ``context`` carries machine-local settings that are not part of the bundle,
+    such as ``lewm_repo`` (the pinned le-wm checkout) and ``device``.
+    """
+
+    context = {} if context is None else context
 
     root = Path(path)
     index = json.loads((root / "bundle.json").read_text(encoding="utf-8"))
@@ -290,7 +338,7 @@ def load_bundle(path: str | Path, *, expected_bundle_id: str | None = None) -> L
         file_path = root / name
         if not file_path.exists():
             mismatches.append(f"missing {name}")
-        elif _digest(file_path.read_bytes()) != expected:
+        elif _file_digest(file_path) != expected:
             mismatches.append(f"checksum mismatch for {name}")
     if mismatches:
         raise BundleCompatibilityError(mismatches)
@@ -306,12 +354,14 @@ def load_bundle(path: str | Path, *, expected_bundle_id: str | None = None) -> L
     encoder_raw = read("encoder.json")
     predictor_raw = read("predictor.json")
     try:
-        encoder = ENCODER_LOADERS[encoder_raw["kind"]](encoder_raw["config"])
-        predictor = PREDICTOR_LOADERS[predictor_raw["kind"]](predictor_raw["config"])
+        encoder_loader = ENCODER_LOADERS[encoder_raw["kind"]]
+        predictor_loader = PREDICTOR_LOADERS[predictor_raw["kind"]]
     except KeyError as error:
         raise BundleCompatibilityError(
             [f"no loader registered for component kind {error}"]
         ) from None
+    encoder = encoder_loader(encoder_raw["config"], root, context)
+    predictor = predictor_loader(predictor_raw["config"], root, context)
     readout = LinearLatentReadout.from_dict(read("readout.json"))
     surprise = SurpriseCalibration(**read("surprise.json"))
     surprise.validate_manifest(manifest)
@@ -375,3 +425,11 @@ def _compare_reference(
         return
     if actual != expected:
         raise BundleCompatibilityError([f"{where}: {actual!r} != {expected!r}"])
+
+
+def _file_digest(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()

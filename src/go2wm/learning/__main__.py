@@ -51,13 +51,102 @@ def main(argv: list[str] | None = None) -> int:
     train.add_argument("--dataset-id", required=True)
     train.add_argument("--backend", default="mujoco")
 
-    export = sub.add_parser("export-lewm", help="write aligned columns for LeWM training")
-    export.add_argument("--data", type=Path, required=True)
-    export.add_argument("--splits", type=Path, required=True)
-    export.add_argument("--split", choices=("train", "validation"), required=True)
-    export.add_argument("--out", type=Path, required=True)
+    fake = sub.add_parser("fake-data", help="scripted fake-simulator dataset (rehearsal only)")
+    fake.add_argument("--out", type=Path, required=True)
+    fake.add_argument("--episodes", type=int, default=60)
+    fake.add_argument("--blocks", type=int, default=16)
+    fake.add_argument("--image-size", type=int, default=224)
+    fake.add_argument("--salt", default="fake-rehearsal-v1")
+
+    cache = sub.add_parser("lewm-cache", help="write lossless train + validation LeWM caches")
+    cache.add_argument("--data", type=Path, required=True)
+    cache.add_argument("--splits", type=Path, required=True)
+    cache.add_argument("--out-dir", type=Path, required=True)
+    cache.add_argument("--dataset-id", required=True)
+    cache.add_argument("--image-size", type=int, default=224)
+
+    lewm_eval = sub.add_parser("lewm-eval", help="G2/G3 + surprise + bundle for a trained LeWM run")
+    lewm_eval.add_argument("--run", type=Path, required=True)
+    lewm_eval.add_argument("--checkpoint", default="best", help="best | last | epoch number")
+    lewm_eval.add_argument("--lewm-repo", default=None)
+    lewm_eval.add_argument("--data", type=Path, required=True)
+    lewm_eval.add_argument("--splits", type=Path, required=True)
+    lewm_eval.add_argument("--out", type=Path, required=True)
+    lewm_eval.add_argument("--dataset-id", required=True)
+    lewm_eval.add_argument("--backend", default="mujoco")
+    lewm_eval.add_argument("--device", default="cpu")
+
+    control = sub.add_parser(
+        "synthetic-control", help="known-answer caches that test whether LeWM learns actions"
+    )
+    control.add_argument("--out-dir", type=Path, required=True)
+    control.add_argument("--train-episodes", type=int, default=120)
+    control.add_argument("--val-episodes", type=int, default=20)
+    control.add_argument("--seed", type=int, default=0)
+
+    compare = sub.add_parser("compare", help="side-by-side key metrics from ml_report.json files")
+    compare.add_argument("reports", type=Path, nargs="+")
 
     args = parser.parse_args(argv)
+
+    if args.command == "synthetic-control":
+        from .lewm_cache import write_synthetic_control
+
+        train_cache, val_cache = write_synthetic_control(
+            args.out_dir,
+            train_episodes=args.train_episodes,
+            val_episodes=args.val_episodes,
+            seed=args.seed,
+        )
+        print(
+            json.dumps(
+                {
+                    "train_cache": str(train_cache.root),
+                    "val_cache": str(val_cache.root),
+                    "train_clips": len(train_cache.clip_starts(4)),
+                    "val_clips": len(val_cache.clip_starts(4)),
+                    "pass_criterion": "after training, val pred loss clearly below both "
+                    "copy-last and shuffled-action losses",
+                },
+                indent=2,
+            )
+        )
+        return 0
+
+    if args.command == "compare":
+        from .report import compare_reports
+
+        print(
+            compare_reports(
+                [json.loads(p.read_text(encoding="utf-8")) for p in args.reports],
+                [str(p) for p in args.reports],
+            )
+        )
+        return 0
+
+    if args.command == "fake-data":
+        from .pipeline import collect_fake_dataset
+
+        seeds = list(range(1, args.episodes + 1))
+        fake_manifest = build_split_manifest(seeds, salt=args.salt, notes="fake backend only")
+        write_split_manifest(args.out / "splits.json", fake_manifest)
+        collect_fake_dataset(
+            args.out / "data", fake_manifest, seeds, blocks=args.blocks, image_size=args.image_size
+        )
+        print(
+            json.dumps(
+                {
+                    "data": str(args.out / "data"),
+                    "splits": str(args.out / "splits.json"),
+                    "split_id": fake_manifest.split_id,
+                    "episodes": args.episodes,
+                    "image_size": args.image_size,
+                    "scope": "fake simulator; rehearsal and software checks only",
+                },
+                indent=2,
+            )
+        )
+        return 0
 
     if args.command == "smoke":
         from .pipeline import run_fake_smoke
@@ -132,16 +221,59 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(summary, indent=2))
         return 0 if report["all_checks_passed"] else 1
 
-    if args.command == "export-lewm":
-        from .lewm_adapter import export_sequences_npz
+    if args.command == "lewm-cache":
+        from .lewm_cache import build_training_cache
 
         leak = check_leakage(dataset.episodes, manifest)
         if not leak.ok:
             print(json.dumps({"error": "leak check failed", "problems": list(leak.problems)}))
             return 1
-        chosen = dataset.by_split(DatasetSplit(args.split))
-        print(json.dumps(export_sequences_npz(chosen, args.out), indent=2))
+        written = {}
+        for split in (DatasetSplit.TRAIN, DatasetSplit.VALIDATION):
+            chosen = dataset.by_split(split)
+            if not chosen:
+                print(json.dumps({"error": f"no {split.value} episodes"}))
+                return 1
+            built = build_training_cache(
+                chosen,
+                args.out_dir / f"cache-{split.value}",
+                split=split,
+                dataset_id=args.dataset_id,
+                split_id=manifest.split_id,
+                image_size=args.image_size,
+            )
+            written[split.value] = {
+                "path": str(built.root),
+                "episodes": built.manifest["episode_count"],
+                "frames": built.frame_count,
+                "clips_4_frames": len(built.clip_starts(4)),
+            }
+        written["note"] = "test episodes are never cached for training"
+        print(json.dumps(written, indent=2))
         return 0
+
+    if args.command == "lewm-eval":
+        from .pipeline import run_lewm_pipeline
+        from .report import gate_table
+
+        report = run_lewm_pipeline(
+            dataset.episodes,
+            manifest,
+            args.out,
+            run_dir=args.run,
+            checkpoint=args.checkpoint,
+            lewm_repo=args.lewm_repo,
+            device=args.device,
+            dataset_id=args.dataset_id,
+            data_backend=args.backend,
+        )
+        print(gate_table(report))
+        print(
+            json.dumps(
+                {"bundle_id": report["bundle_id"], "report": report["report_path"]}, indent=2
+            )
+        )
+        return 0 if report["all_checks_passed"] else 1
 
     return 2
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from go2wm.contracts import (
     ActionCommand,
@@ -118,7 +118,7 @@ class EpisodeCollector:
                     episode_id=request.reset.episode_id,
                     block_index=index,
                     transition=transition,
-                    collected_at_utc=datetime.now(UTC).isoformat().replace(
+                    collected_at_utc=datetime.now(timezone.utc).isoformat().replace(
                         "+00:00", "Z"
                     ),
                     valid=True,

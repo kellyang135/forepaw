@@ -62,11 +62,19 @@ class Standardizer:
     scale: np.ndarray
 
     @classmethod
-    def fit(cls, values: np.ndarray, *, floor: float = 1e-6) -> Standardizer:
+    def fit(
+        cls, values: np.ndarray, *, floor: float = 1e-6, relative_floor: float = 0.01
+    ) -> Standardizer:
+        """Per-column z-score.  Near-constant columns are scaled by at least
+        ``relative_floor`` x the median column std, so a column that barely varies
+        in training cannot turn small test-time drift into huge readout errors."""
+
         if values.ndim != 2 or len(values) < 2:
             raise ValueError("standardizer needs a 2-D array with at least two rows")
         mean = values.mean(axis=0)
-        scale = np.maximum(values.std(axis=0), floor)
+        std = values.std(axis=0)
+        typical = float(np.median(std)) if std.size else 0.0
+        scale = np.maximum(std, max(floor, relative_floor * typical))
         return cls(mean, scale)
 
     def apply(self, values: np.ndarray) -> np.ndarray:
@@ -175,6 +183,52 @@ def fit_linear_readout(
     target_norm = Standardizer.fit(y)
     weights = ridge_fit(latent_norm.apply(x), target_norm.apply(y), alpha=alpha)
     return LinearLatentReadout(spec, latent_norm, target_norm, weights, alpha)
+
+
+DEFAULT_ALPHAS = (0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0)
+
+
+def group_folds(groups: Sequence[str], folds: int) -> list[np.ndarray]:
+    """Deterministic fold assignment by group (episode), never splitting a group."""
+
+    unique = sorted(set(groups))
+    if len(unique) < 2:
+        raise ValueError("cross-validation needs at least two groups")
+    folds = min(folds, len(unique))
+    fold_of = {g: i % folds for i, g in enumerate(unique)}
+    labels = np.asarray([fold_of[g] for g in groups])
+    return [np.flatnonzero(labels == k) for k in range(folds)]
+
+
+def select_readout_alpha(
+    latents: np.ndarray,
+    labels: Sequence[StateLabels],
+    groups: Sequence[str],
+    *,
+    alphas: Sequence[float] = DEFAULT_ALPHAS,
+    folds: int = 5,
+    spec: TargetSpec | None = None,
+) -> tuple[float, dict[str, float]]:
+    """Choose the ridge penalty by episode-grouped cross-validation on training data.
+
+    Score: mean of held-out robot and object median position errors.  Validation
+    and test data are never used, so the choice cannot leak into G2/G3.
+    """
+
+    x = np.asarray(latents, dtype=np.float64)
+    spec = spec or TargetSpec.from_labels(labels[0])
+    fold_indices = group_folds(groups, folds)
+    scores: dict[str, float] = {}
+    for alpha in alphas:
+        errors = []
+        for held in fold_indices:
+            keep = np.setdiff1d(np.arange(len(x)), held)
+            readout = fit_linear_readout(x[keep], [labels[i] for i in keep], alpha=alpha, spec=spec)
+            err = readout_errors(readout, x[held], [labels[i] for i in held])
+            errors.append(0.5 * (err.robot_position_median_m + err.object_position_median_m))
+        scores[f"{alpha:g}"] = float(np.mean(errors))
+    best = min(alphas, key=lambda a: scores[f"{a:g}"])
+    return float(best), scores
 
 
 @dataclass(frozen=True, slots=True)

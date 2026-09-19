@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import json
 import math
+import platform
 import random
 import subprocess
+import time
 from collections.abc import Sequence
 from dataclasses import asdict
 from pathlib import Path
@@ -21,12 +23,14 @@ import numpy as np
 
 from go2wm.contracts import (
     ActionCommand,
+    CameraConfig,
     DatasetSplit,
     EpisodeRecord,
     Goal2D,
     ObjectState,
     Pose2D,
     ResetRequest,
+    RGBObservation,
 )
 from go2wm.data import CollectionConfig, EpisodeCollector, EpisodeRequest, write_episode
 from go2wm.planning import (
@@ -38,17 +42,22 @@ from go2wm.planning import (
     build_candidate_library,
 )
 from go2wm.runtime import calibrate_surprise
-from go2wm.sim import DeterministicFakeSimulator
+from go2wm.sim import DeterministicFakeSimulator, FakeSimulatorConfig
 
-from .baseline_model import PooledPixelEncoder, fit_linear_predictor
+from .baseline_model import PooledPixelEncoder, fit_linear_predictor, select_predictor_alpha
 from .bundle_io import Provenance, publish_bundle
 from .dataset import load_dataset
 from .diagnostics import coverage_report
 from .prediction_eval import evaluate_predictions, g2_checks, g3_checks
-from .readouts import constant_mean_errors, fit_linear_readout, readout_errors
+from .readouts import (
+    constant_mean_errors,
+    fit_linear_readout,
+    readout_errors,
+    select_readout_alpha,
+)
 from .splits import SplitManifest, build_split_manifest, check_leakage, write_split_manifest
 from .surprise_fit import false_stop_fraction, one_step_pairs
-from .windows import dataset_windows, labeled_observations
+from .windows import dataset_windows, episode_sequence, labeled_observations
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -60,20 +69,54 @@ def git_revision(root: Path = ROOT) -> str:
     return process.stdout.strip() if process.returncode == 0 else "NO_COMMIT"
 
 
-def run_baseline_pipeline(
-    episodes: Sequence[EpisodeRecord],
-    split_manifest: SplitManifest,
-    output_dir: str | Path,
-    *,
-    dataset_id: str,
-    data_backend: str,
-    readout_alpha: float = 1.0,
-    predictor_alpha: float = 100.0,
-    surprise_quantile: float = 0.99,
-    min_shuffle_improvement: float = 0.15,
-) -> dict[str, Any]:
-    out = Path(output_dir)
-    out.mkdir(parents=True, exist_ok=True)
+class MemoEncoder:
+    """Encode each observation once.
+
+    Evaluation windows overlap, so the same frame is requested up to nine
+    times.  ``prime`` batch-encodes when the wrapped encoder has
+    ``encode_batch`` (LeWM), which is much faster on a GPU/MPS device.
+    """
+
+    def __init__(self, encoder: Any) -> None:
+        self.encoder = encoder
+        self._memo: dict[tuple[str, str], tuple[float, ...]] = {}
+
+    def prime(self, observations: Sequence[RGBObservation], batch_size: int = 64) -> None:
+        todo = [o for o in observations if (o.episode_id, o.observation_id) not in self._memo]
+        unique = list({(o.episode_id, o.observation_id): o for o in todo}.values())
+        if not unique:
+            return
+        batch = getattr(self.encoder, "encode_batch", None)
+        if batch is not None:
+            latents = batch(unique, batch_size=batch_size)
+        else:
+            latents = [self.encoder.encode(o) for o in unique]
+        for observation, latent in zip(unique, latents, strict=True):
+            self._memo[(observation.episode_id, observation.observation_id)] = tuple(
+                float(v) for v in latent
+            )
+
+    def encode(self, observation: RGBObservation) -> tuple[float, ...]:
+        key = (observation.episode_id, observation.observation_id)
+        if key not in self._memo:
+            self.prime([observation])
+        return self._memo[key]
+
+    def encode_array(self, observations: Sequence[RGBObservation]) -> np.ndarray:
+        self.prime(observations)
+        return np.asarray([self.encode(o) for o in observations], dtype=np.float64)
+
+
+def _all_observations(episodes: Sequence[EpisodeRecord]) -> list[RGBObservation]:
+    frames: list[RGBObservation] = []
+    for episode in episodes:
+        frames.extend(episode_sequence(episode)[0])
+    return frames
+
+
+def split_episodes(
+    episodes: Sequence[EpisodeRecord], split_manifest: SplitManifest
+) -> tuple[list[EpisodeRecord], list[EpisodeRecord], Any]:
     leak = check_leakage(episodes, split_manifest)
     if not leak.ok:
         raise ValueError("split leak check failed: " + "; ".join(leak.problems))
@@ -81,30 +124,73 @@ def run_baseline_pipeline(
     validation = [e for e in episodes if e.split == DatasetSplit.VALIDATION]
     if not train or not validation:
         raise ValueError("pipeline needs both train and validation episodes")
-    # Test episodes are deliberately never touched here.
+    return train, validation, leak
 
-    encoder = PooledPixelEncoder()
-    predictor = fit_linear_predictor(encoder, train, alpha=predictor_alpha)
+
+def evaluate_and_publish(
+    episodes: Sequence[EpisodeRecord],
+    split_manifest: SplitManifest,
+    output_dir: str | Path,
+    *,
+    encoder: Any,
+    encoder_kind: str,
+    predictor: Any,
+    predictor_kind: str,
+    model_label: str,
+    dataset_id: str,
+    data_backend: str,
+    training_command: str,
+    readout_alpha: float | str = "cv",
+    surprise_quantile: float = 0.99,
+    min_shuffle_improvement: float = 0.15,
+    extra_files: dict[str, Path] | None = None,
+    reference_tolerance: float = 1e-6,
+    load_context: dict[str, Any] | None = None,
+    latency_repeats: int = 5,
+    extra_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """G2/G3 checks, surprise calibration, bundle publication, and one timed plan.
+
+    Only train and validation episodes are read.  Test episodes are never
+    touched, whatever the manifest contains.
+    """
+
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    train, validation, leak = split_episodes(episodes, split_manifest)
+    memo = MemoEncoder(encoder)
+    started = time.perf_counter()
+    memo.prime(_all_observations(train) + _all_observations(validation))
+    encode_seconds = time.perf_counter() - started
 
     train_pairs = labeled_observations(train)
     val_pairs = labeled_observations(validation)
-    train_latents = np.stack([encoder.encode_array(obs) for obs, _ in train_pairs])
-    val_latents = np.stack([encoder.encode_array(obs) for obs, _ in val_pairs])
-    readout = fit_linear_readout(
-        train_latents, [labels for _, labels in train_pairs], alpha=readout_alpha
-    )
+    train_latents = memo.encode_array([obs for obs, _ in train_pairs])
+    val_latents = memo.encode_array([obs for obs, _ in val_pairs])
+    train_labels = [labels for _, labels in train_pairs]
+    readout_cv: dict[str, float] = {}
+    if readout_alpha == "cv":
+        chosen_alpha, readout_cv = select_readout_alpha(
+            train_latents, train_labels, [obs.episode_id for obs, _ in train_pairs]
+        )
+    else:
+        chosen_alpha = float(readout_alpha)
+    readout = fit_linear_readout(train_latents, train_labels, alpha=chosen_alpha)
     real_errors = readout_errors(readout, val_latents, [labels for _, labels in val_pairs])
+    train_fit_errors = readout_errors(readout, train_latents, [labels for _, labels in train_pairs])
     mean_errors = constant_mean_errors(
         [labels for _, labels in train_pairs], [labels for _, labels in val_pairs], readout.spec
     )
 
     val_windows = dataset_windows(validation, horizon=6)
+    if len(val_windows) < 2:
+        raise ValueError("validation needs at least two 6-block windows")
     prediction_report = evaluate_predictions(
-        val_windows, encoder=encoder, predictor=predictor, readout=readout
+        val_windows, encoder=memo, predictor=predictor, readout=readout
     )
 
     calibration_windows = dataset_windows(validation, horizon=1)
-    pairs = one_step_pairs(calibration_windows, encoder=encoder, predictor=predictor)
+    pairs = one_step_pairs(calibration_windows, encoder=memo, predictor=predictor)
     surprise = calibrate_surprise(
         pairs,
         bundle_id="pending",
@@ -113,37 +199,36 @@ def run_baseline_pipeline(
     )
 
     candidates = build_candidate_library()
-    scoring = ScoringConfig()
-    safety = PlannerSafetyPolicy()
-    reference_input = val_windows[0].model_input
     loaded = publish_bundle(
         out / "bundles",
         encoder=encoder,
-        encoder_kind="pooled_pixels",
+        encoder_kind=encoder_kind,
         predictor=predictor,
-        predictor_kind="linear_latent",
+        predictor_kind=predictor_kind,
         readout=readout,
         surprise=surprise,
         candidates=candidates,
-        scoring=scoring,
-        safety=safety,
+        scoring=ScoringConfig(),
+        safety=PlannerSafetyPolicy(),
         provenance=Provenance(
             source_revision=git_revision(),
             dataset_id=dataset_id,
             split_id=split_manifest.split_id,
-            training_command=f"go2wm.learning baseline ({data_backend})",
-            notes="linear latent baseline; not LeWM",
+            training_command=training_command,
+            notes=model_label,
         ),
-        reference_input=reference_input,
+        reference_input=val_windows[0].model_input,
+        latent_dim=len(train_latents[0]),
+        extra_files=extra_files,
+        reference_tolerance=reference_tolerance,
+        load_context=load_context,
     )
     in_sample_false_stops = false_stop_fraction(
-        calibration_windows, loaded.surprise, encoder=encoder, predictor=predictor
+        calibration_windows, loaded.surprise, encoder=memo, predictor=predictor
     )
 
-    # One planning cycle through the published bundle, from runtime-visible inputs only.
+    # Plan through the reloaded bundle from runtime-visible inputs only, and time it.
     window = val_windows[0]
-    current_latent = encoder.encode(window.model_input.observations[-1])
-    current = readout.decode(current_latent, step=1).robot
     planner = RecedingHorizonPlanner(
         loaded.model_bundle,
         candidates=loaded.candidates,
@@ -151,13 +236,23 @@ def run_baseline_pipeline(
         safety_policy=loaded.safety,
     )
     goal = next(e.goal for e in validation if e.episode_id == window.episode_id)
-    plan = planner.plan(
-        PlanningRequest(
-            model_input=window.model_input,
-            goal_xy=(goal.x_m, goal.y_m),
-            current_robot_xy=current.xy,
+    backend = loaded.model_bundle.backend
+    timings: list[float] = []
+    plan = None
+    for _ in range(max(1, latency_repeats)):
+        started = time.perf_counter()
+        current_latent = backend.encoder.encode(window.model_input.observations[-1])
+        current = loaded.readout.decode(current_latent, step=1).robot
+        plan = planner.plan(
+            PlanningRequest(
+                model_input=window.model_input,
+                goal_xy=(goal.x_m, goal.y_m),
+                current_robot_xy=current.xy,
+            )
         )
-    )
+        timings.append(time.perf_counter() - started)
+    assert plan is not None
+    ordered = sorted(timings)
 
     checks = [
         *g2_checks(real_errors, mean_errors, leak_ok=leak.ok, reload_deterministic=True),
@@ -165,10 +260,13 @@ def run_baseline_pipeline(
     ]
     report = {
         "evidence_scope": (
-            "software contracts only; fake simulator data"
+            f"software contracts only; fake simulator data; model: {model_label}"
             if data_backend == "fake"
-            else f"data backend: {data_backend}; linear baseline, not LeWM"
+            else f"data backend: {data_backend}; model: {model_label}"
         ),
+        "model": model_label,
+        "encoder_kind": encoder_kind,
+        "predictor_kind": predictor_kind,
         "data_backend": data_backend,
         "dataset_id": dataset_id,
         "split_id": split_manifest.split_id,
@@ -176,7 +274,9 @@ def run_baseline_pipeline(
         "bundle_path": str(loaded.path),
         "leak_check": asdict(leak),
         "coverage": coverage_report(episodes),
+        "readout_alpha": {"chosen": chosen_alpha, "grouped_cv_scores_m": readout_cv},
         "readout_validation_real_latents": asdict(real_errors),
+        "readout_train_fit": asdict(train_fit_errors),
         "readout_validation_constant_mean": asdict(mean_errors),
         "prediction": prediction_report,
         "surprise": {
@@ -196,16 +296,135 @@ def run_baseline_pipeline(
                 for item in plan.rankings[:5]
             ],
         },
+        "latency": {
+            "scope": "in-process encode + 64-candidate plan through the reloaded bundle; "
+            "excludes transport and simulator",
+            "repeats": len(timings),
+            "median_s": ordered[len(ordered) // 2],
+            "max_s": ordered[-1],
+            "first_call_s": timings[0],
+            "dataset_encode_s": encode_seconds,
+            "platform": platform.platform(),
+        },
         "gate_checks": [asdict(check) for check in checks],
         "all_checks_passed": all(check.passed for check in checks),
+        **(extra_report or {}),
     }
     report_path = out / "ml_report.json"
+    if report_path.exists():
+        raise FileExistsError(f"refusing to overwrite {report_path}")
     report_path.write_text(
         json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n",
         encoding="utf-8",
     )
     report["report_path"] = str(report_path)
     return report
+
+
+def run_baseline_pipeline(
+    episodes: Sequence[EpisodeRecord],
+    split_manifest: SplitManifest,
+    output_dir: str | Path,
+    *,
+    dataset_id: str,
+    data_backend: str,
+    readout_alpha: float | str = "cv",
+    predictor_alpha: float | str = "cv",
+    surprise_quantile: float = 0.99,
+    min_shuffle_improvement: float = 0.15,
+) -> dict[str, Any]:
+    train, _, _ = split_episodes(episodes, split_manifest)
+    encoder = PooledPixelEncoder()
+    predictor_cv: dict[str, float] = {}
+    if predictor_alpha == "cv":
+        chosen, predictor_cv = select_predictor_alpha(encoder, train)
+    else:
+        chosen = float(predictor_alpha)
+    predictor = fit_linear_predictor(encoder, train, alpha=chosen)
+    return evaluate_and_publish(
+        episodes,
+        split_manifest,
+        output_dir,
+        encoder=encoder,
+        encoder_kind="pooled_pixels",
+        predictor=predictor,
+        predictor_kind="linear_latent",
+        model_label="linear latent baseline (pooled pixels + ridge dynamics); not LeWM",
+        dataset_id=dataset_id,
+        data_backend=data_backend,
+        training_command=f"go2wm.learning baseline ({data_backend})",
+        readout_alpha=readout_alpha,
+        surprise_quantile=surprise_quantile,
+        min_shuffle_improvement=min_shuffle_improvement,
+        extra_report={
+            "predictor_alpha": {"chosen": chosen, "grouped_cv_rollout_rmse": predictor_cv}
+        },
+    )
+
+
+def run_lewm_pipeline(
+    episodes: Sequence[EpisodeRecord],
+    split_manifest: SplitManifest,
+    output_dir: str | Path,
+    *,
+    run_dir: str | Path,
+    checkpoint: str = "best",
+    lewm_repo: str | Path | None = None,
+    device: str = "cpu",
+    dataset_id: str,
+    data_backend: str,
+    readout_alpha: float | str = "cv",
+    surprise_quantile: float = 0.99,
+    min_shuffle_improvement: float = 0.15,
+    reference_tolerance: float = 2e-3,
+) -> dict[str, Any]:
+    """Evaluate a trained LeWM run with exactly the same code path as the baseline."""
+
+    from .lewm_adapter import WEIGHTS_FILENAME, LeWMWorldModel
+
+    world_model = LeWMWorldModel.from_run(
+        run_dir, checkpoint=checkpoint, lewm_repo=lewm_repo, device=device
+    )
+    run_config = world_model.trained.run_config
+    if run_config.get("data", {}).get("split_id") not in (None, split_manifest.split_id):
+        raise ValueError(
+            f"run was trained on split {run_config['data']['split_id']}, "
+            f"evaluating with {split_manifest.split_id}"
+        )
+    context: dict[str, Any] = {"lewm_repo": lewm_repo, "device": device}
+    rehearsal = bool(run_config.get("rehearsal_only")) or data_backend == "fake"
+    label = f"LeWM run {run_config.get('run_id', run_dir)} checkpoint {checkpoint}"
+    if rehearsal:
+        label += " [REHEARSAL ONLY: fake data; not for handoff]"
+    return evaluate_and_publish(
+        episodes,
+        split_manifest,
+        output_dir,
+        encoder=world_model,
+        encoder_kind="lewm",
+        predictor=world_model,
+        predictor_kind="lewm",
+        model_label=label,
+        dataset_id=dataset_id,
+        data_backend=data_backend,
+        training_command=" ".join(run_config.get("command", [])),
+        readout_alpha=readout_alpha,
+        surprise_quantile=surprise_quantile,
+        min_shuffle_improvement=min_shuffle_improvement,
+        extra_files={WEIGHTS_FILENAME: world_model.trained.weights_path},
+        reference_tolerance=reference_tolerance,
+        load_context=context,
+        extra_report={
+            "lewm_run": {
+                "run_dir": str(run_dir),
+                "checkpoint": checkpoint,
+                "weights_sha256": world_model.trained.weights_sha256,
+                "device": device,
+                "best": run_config.get("best"),
+                "rehearsal_only": rehearsal,
+            }
+        },
+    )
 
 
 def _json_default(value: Any) -> Any:
@@ -273,9 +492,18 @@ def fake_episode_plan(
 
 
 def collect_fake_dataset(
-    data_dir: str | Path, split_manifest: SplitManifest, seeds: Sequence[int], *, blocks: int = 16
+    data_dir: str | Path,
+    split_manifest: SplitManifest,
+    seeds: Sequence[int],
+    *,
+    blocks: int = 16,
+    image_size: int = 32,
 ) -> None:
-    simulator = DeterministicFakeSimulator()
+    """Scripted fake-simulator episodes; ``image_size=224`` matches the LeWM camera contract."""
+
+    simulator = DeterministicFakeSimulator(
+        FakeSimulatorConfig(camera=CameraConfig("overhead", image_size, image_size))
+    )
     collector = EpisodeCollector(simulator, CollectionConfig())
     for seed in seeds:
         reset, goal, actions, kind = fake_episode_plan(seed, blocks=blocks)

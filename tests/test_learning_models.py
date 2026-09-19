@@ -27,7 +27,6 @@ from go2wm.learning.baseline_model import (  # noqa: E402
 from go2wm.learning.bundle_io import Provenance, load_bundle, publish_bundle  # noqa: E402
 from go2wm.learning.lewm_adapter import (  # noqa: E402
     ActionNormalizer,
-    export_sequences_npz,
     lewm_action_context,
     preprocess_rgb,
 )
@@ -232,27 +231,9 @@ def test_lewm_preprocessing_and_action_normalizer() -> None:
     small = RGBObservation("o", "e", 0.0, "cam", 32, 32, bytes(32 * 32 * 3))
     with pytest.raises(ValueError, match="224"):
         preprocess_rgb(small)
-    normalizer = ActionNormalizer.fit([ActionBlock(0.0, -1.0), ActionBlock(0.4, 1.0)])
-    normalized = normalizer.apply([ActionBlock(0.2, 0.0)])
-    assert np.allclose(normalized, 0.0, atol=1e-6)
-
-
-def test_export_rows_pair_each_frame_with_its_outgoing_command(tmp_path: Path) -> None:
-    episode = push_episode()
-    out = tmp_path / "train.npz"
-    summary = export_sequences_npz([episode], out)
-    data = np.load(out)
-    frames = len(episode.initial_history) + len(episode.blocks)
-    assert summary == {"rows": frames, "episodes": 1}
-    assert data["pixels"].shape == (frames, 32, 32, 3)
-    assert np.isnan(data["action"][-1]).all()
-    block3 = episode.blocks[3].transition.action
-    row = len(episode.initial_history) - 1 + 3
-    assert np.allclose(data["action"][row], [block3.forward_velocity_mps, block3.yaw_rate_rps])
-    assert np.isnan(data["state"][0]).all()
-    assert not np.isnan(data["state"][row]).any()
-    with pytest.raises(FileExistsError):
-        export_sequences_npz([episode], out)
+    normalizer = ActionNormalizer((0.2, 0.0), (0.4, 2.0))
+    normalized = normalizer.apply([ActionBlock(0.2, 0.0), ActionBlock(0.6, 1.0)])
+    assert np.allclose(normalized, [[0.0, 0.0], [1.0, 0.5]], atol=1e-6)
 
 
 def test_fake_smoke_pipeline_publishes_and_labels_scope(tmp_path: Path) -> None:
@@ -277,3 +258,153 @@ def test_split_labels_in_smoke_data_follow_manifest(tmp_path: Path) -> None:
     for episode in load_dataset(tmp_path / "s" / "data").episodes:
         assert episode.split == manifest.split_of(episode.scenario_seed)
     assert DatasetSplit.TEST in {manifest.split_of(s) for s in range(1, 25)}
+
+
+def test_batched_predictor_path_matches_per_candidate_calls() -> None:
+    from go2wm.model import BundleManifest, ComponentWorldModelBackend, ModelInput
+
+    class Encoder:
+        def encode(self, observation):
+            return (float(observation),) * 4
+
+    class Predictor:
+        batch_calls = 0
+
+        def rollout(self, history, history_actions, actions):
+            base = history[-1][0]
+            return [(base + a.forward_mps * (i + 1),) * 4 for i, a in enumerate(actions)]
+
+        def rollout_batch(self, history, history_actions, candidates):
+            Predictor.batch_calls += 1
+            return [self.rollout(history, history_actions, c) for c in candidates]
+
+    class Readout:
+        def decode(self, latent, *, step):
+            from go2wm.model import PredictedState, RobotState
+
+            return PredictedState(step=step, robot=RobotState(latent[0], 0.0, 0.0))
+
+    manifest = BundleManifest("b", "e", "p", "r", "n", "s", latent_dim=4)
+    candidates = build_candidate_library()[:5]
+    model_input = ModelInput((1, 2, 3), (ActionBlock(0.0, 0.0), ActionBlock(0.0, 0.0)))
+    batched = ComponentWorldModelBackend(manifest, Encoder(), Predictor(), Readout())
+    rollouts = batched.predict_candidates(model_input, candidates)
+    assert Predictor.batch_calls == 1
+    for candidate, rollout in zip(candidates, rollouts, strict=True):
+        assert rollout.candidate_id == candidate.candidate_id
+        expected = Predictor().rollout(((3.0,) * 4,), (), candidate.actions)
+        assert [s.robot.x_m for s in rollout.states] == [e[0] for e in expected]
+
+
+def test_grouped_cv_never_splits_an_episode() -> None:
+    from go2wm.learning.readouts import group_folds
+
+    groups = ["a", "a", "b", "c", "c", "c", "d"]
+    folds = group_folds(groups, 3)
+    assert sorted(np.concatenate(folds).tolist()) == list(range(len(groups)))
+    for fold in folds:
+        members = {groups[i] for i in fold}
+        for g in members:
+            assert {i for i, x in enumerate(groups) if x == g} <= set(fold.tolist())
+
+
+def test_readout_alpha_selection_prefers_less_overfit_penalty() -> None:
+    from go2wm.learning.readouts import select_readout_alpha
+
+    rng = np.random.default_rng(1)
+    states = rng.uniform(-1, 1, size=(120, 5))
+    labels = [_labels(*row) for row in states]
+    spec = TargetSpec(("light",))
+    signal = np.stack([spec.encode(item) for item in labels]) @ rng.normal(size=(spec.dim, 8))
+    latents = np.hstack([signal, rng.normal(size=(120, 150))])
+    groups = [f"ep{i // 6}" for i in range(120)]
+    alpha, scores = select_readout_alpha(latents, labels, groups, spec=spec)
+    assert scores[f"{alpha:g}"] == min(scores.values())
+    assert scores["0.1"] > scores[f"{alpha:g}"]
+
+
+def test_standardizer_floors_near_constant_columns() -> None:
+    from go2wm.learning.readouts import Standardizer
+
+    values = np.column_stack([np.linspace(0, 1, 50), np.full(50, 0.5), np.linspace(-2, 2, 50)])
+    values[0, 1] += 1e-9
+    norm = Standardizer.fit(values)
+    typical = np.median(values.std(axis=0))
+    assert norm.scale[1] >= 0.01 * typical
+    assert abs(norm.apply(values + 0.01)[0, 1]) < 10
+
+
+def test_memo_encoder_encodes_each_frame_once() -> None:
+    from go2wm.learning.pipeline import MemoEncoder
+
+    calls: list[str] = []
+
+    class Counting:
+        def encode(self, observation):
+            calls.append(observation.observation_id)
+            return (0.0, 1.0)
+
+    episode = push_episode()
+    memo = MemoEncoder(Counting())
+    frames = list(episode.initial_history) * 3
+    memo.prime(frames)
+    for frame in frames:
+        memo.encode(frame)
+    assert sorted(calls) == sorted({f.observation_id for f in episode.initial_history})
+
+
+def test_report_tables_render(tmp_path: Path) -> None:
+    from go2wm.learning.report import compare_reports, gate_table
+
+    report = run_fake_smoke(tmp_path / "s", episode_count=24)
+    table = gate_table(report)
+    assert "G2" in table and "G3" in table
+    text = compare_reports([report, report], ["a", "b"])
+    assert "readout robot, true frames" in text
+    assert "plan latency median s" in text
+    assert report["latency"]["repeats"] == 5
+    assert report["readout_alpha"]["chosen"] in {0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0}
+
+
+def test_cli_fake_data_and_lewm_cache(tmp_path: Path) -> None:
+    from go2wm.learning.__main__ import main
+    from go2wm.learning.lewm_cache import read_training_cache
+
+    assert (
+        main(
+            [
+                "fake-data",
+                "--out",
+                str(tmp_path / "f"),
+                "--episodes",
+                "12",
+                "--image-size",
+                "32",
+                "--blocks",
+                "6",
+            ]
+        )
+        == 0
+    )
+    assert (
+        main(
+            [
+                "lewm-cache",
+                "--data",
+                str(tmp_path / "f" / "data"),
+                "--splits",
+                str(tmp_path / "f" / "splits.json"),
+                "--out-dir",
+                str(tmp_path / "c"),
+                "--dataset-id",
+                "cli",
+                "--image-size",
+                "32",
+            ]
+        )
+        == 0
+    )
+    train = read_training_cache(tmp_path / "c" / "cache-train")
+    val = read_training_cache(tmp_path / "c" / "cache-validation")
+    assert train.split == "train" and val.split == "validation"
+    assert not (tmp_path / "c" / "cache-test").exists()
