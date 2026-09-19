@@ -239,6 +239,26 @@ Template:
 - Evidence: `artifacts/runs/20260919T202600Z-go2-controller-source-audit/report.json`, the procedure in `docs/GO2_CONTROLLER_RECOVERY.md`, and the requirement that controller packets pass `scripts/verify_controller_handoff.py`.
 - Supersedes / superseded by: narrows D-018 for controller execution; D-018 still covers the independently verified render/model probe.
 
+### D-027 — One closed-loop runner and an append-only UI telemetry log
+
+- Status: Proposed
+- Date / gate: 2026-09-19 / before G5
+- Owners acknowledging: pending (SIM and ML)
+- Decision: `go2wm.runtime.loop.ClosedLoopRunner` is the single place that joins the simulator adapter, the planner and the surprise monitor. Each block it builds the model input from three observations and two commands, plans, arms the monitor, writes and fsyncs a `plan_locked` record to `runs/<id>/ui.jsonl` (schema `go2wm.ui.v1`), and only then sends the first action. The viewer in `ui/viewer/` only replays or follows that log; it never plans.
+- Rationale: implements D-010 (lock before motion) with a test that fails if motion is requested without a durable lock, and gives the demo, the backup recording and later audits one source of truth.
+- Consequences: simulator labels appear in the log only under `ground_truth` keys and are used by the runner only for evaluation-side termination (goal reached, fall, out of bounds). The runner also ends a run as `stalled` after four consecutive zero first blocks chosen by minimum score; that is a demo-safety stop, not a planner change. dimOS integration should call the same runner.
+- Evidence: `tests/test_runtime_loop.py`; `python -m go2wm.ui record` on the fake backend.
+- Supersedes / superseded by: none.
+
+### D-028 — Terminal-only goal distance stalls the planner near the goal (defect, owner ML)
+
+- Status: Proposed (defect recorded; fix not applied)
+- Date / gate: 2026-09-19 / must be resolved before G4
+- Owners acknowledging: pending (ML owns `planning/scoring.py`)
+- Decision needed: `RolloutScorer` scores goal progress from the final predicted state only. Near the goal, `stop_then_creep` ends closest, so it wins, but its first block is zero motion and only the first block executes, so the robot never moves. Candidate fixes: use the minimum distance over the rollout, add a per-block discounted distance term, or exclude zero-first-block plans unless the safety policy selects them.
+- Evidence: `tests/test_runtime_loop.py::test_idle_planner_is_reported_as_stalled` reproduces it with the real planner; `test_short_goal_is_reached` is a strict xfail that will start failing, as a reminder, once the scorer is fixed.
+- Supersedes / superseded by: none.
+
 ## 3. Assumption register
 
 Every row begins unverified. Change status only with a direct evidence link.

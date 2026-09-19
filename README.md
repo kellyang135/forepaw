@@ -105,6 +105,13 @@ tests/                   executable contract tests
 scripts/                 repository and protocol verification helpers
 ```
 
+## Viewer and closed loop
+
+`make ui-demo && make ui-serve` records a closed-loop run on the fake backend
+and replays it in the 3D viewer. The runner locks each plan to
+`runs/<id>/ui.jsonl` before any motion (D-010, D-027). See
+[`docs/UI_INTEGRATION.md`](docs/UI_INTEGRATION.md).
+
 ## Non-negotiable experiment rules
 
 1. Split by complete scenario/episode seeds before any model training.

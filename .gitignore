@@ -26,3 +26,7 @@ wandb/**
 # Local credentials and machine-specific overrides
 .env
 *.local.toml
+
+# Transfer scratch and local agent tooling
+.incoming/
+.flash/
