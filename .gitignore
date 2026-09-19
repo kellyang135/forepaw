@@ -1,0 +1,28 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Large/generated experiment outputs
+artifacts/**
+data/**
+runs/**
+checkpoints/**
+wandb/**
+
+# Keep directory contracts visible
+!artifacts/.gitkeep
+!data/.gitkeep
+!runs/.gitkeep
+!checkpoints/.gitkeep
+
+# Local credentials and machine-specific overrides
+.env
+*.local.toml

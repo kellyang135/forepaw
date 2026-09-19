@@ -1,0 +1,76 @@
+{
+  "schema_version": "go2wm.go2-controller-handoff.v1",
+  "controller_id": "REPLACE_WITH_SAFE_ID",
+  "source": {
+    "repository": "https://github.com/unitreerobotics/unitree_rl_mjlab",
+    "revision": "1425b15f73bd4095f0df53709d7c389c3eb9e790",
+    "task": "Unitree-Go2-Flat"
+  },
+  "compatibility": {
+    "model_xml_sha256": "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912",
+    "joint_order": [
+      "FL_hip_joint",
+      "FL_thigh_joint",
+      "FL_calf_joint",
+      "FR_hip_joint",
+      "FR_thigh_joint",
+      "FR_calf_joint",
+      "RL_hip_joint",
+      "RL_thigh_joint",
+      "RL_calf_joint",
+      "RR_hip_joint",
+      "RR_thigh_joint",
+      "RR_calf_joint"
+    ],
+    "command_order": [
+      "forward_velocity_mps",
+      "lateral_velocity_mps",
+      "yaw_rate_rps"
+    ],
+    "action_semantics": "scaled_joint_position_target",
+    "onnx_data_mode": "external",
+    "physics_dt_s": 0.005,
+    "controller_dt_s": 0.02,
+    "physics_substeps_per_control": 4
+  },
+  "validation": {
+    "training_smoke_passed": false,
+    "checkpoint_playback_passed": false,
+    "onnx_sim_playback_passed": false,
+    "onnx_export_present": false
+  },
+  "files": {
+    "policy_onnx": {
+      "path": "REPLACE_POLICY_ONNX_RELATIVE_PATH",
+      "sha256": "REPLACE_WITH_64_LOWERCASE_HEX_DIGEST"
+    },
+    "policy_onnx_data": {
+      "path": "REPLACE_POLICY_DATA_RELATIVE_PATH",
+      "sha256": "REPLACE_WITH_64_LOWERCASE_HEX_DIGEST"
+    },
+    "checkpoint": {
+      "path": "REPLACE_CHECKPOINT_RELATIVE_PATH",
+      "sha256": "REPLACE_WITH_64_LOWERCASE_HEX_DIGEST"
+    },
+    "environment_config": {
+      "path": "REPLACE_ENVIRONMENT_CONFIG_RELATIVE_PATH",
+      "sha256": "REPLACE_WITH_64_LOWERCASE_HEX_DIGEST"
+    },
+    "agent_config": {
+      "path": "REPLACE_AGENT_CONFIG_RELATIVE_PATH",
+      "sha256": "REPLACE_WITH_64_LOWERCASE_HEX_DIGEST"
+    },
+    "deployment_config": {
+      "path": "REPLACE_DEPLOYMENT_CONFIG_RELATIVE_PATH",
+      "sha256": "REPLACE_WITH_64_LOWERCASE_HEX_DIGEST"
+    },
+    "robot_xml": {
+      "path": "REPLACE_ROBOT_XML_RELATIVE_PATH",
+      "sha256": "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912"
+    },
+    "training_log": {
+      "path": "REPLACE_TRAINING_LOG_RELATIVE_PATH",
+      "sha256": "REPLACE_WITH_64_LOWERCASE_HEX_DIGEST"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+schema_version = 1
+status = "PROVISIONAL_UNTIL_MANUAL_FEASIBILITY"
+
+[timing]
+observation_hz = 2.0
+block_duration_s = 0.5
+history_frames = 3
+history_span_s = 1.0
+planning_blocks = 6
+planning_horizon_s = 3.0
+dataset_frameskip = 1
+
+[observation]
+width = 224
+height = 224
+channels = 3
+camera_id = "overhead_v1"
+robot_front_marker = true
+
+[action]
+fields = ["forward_velocity_mps", "yaw_rate_rps"]
+lateral_velocity_mps = 0.0
+# Replace these only after the manual gait/box feasibility sweep.
+min_forward_velocity_mps = 0.0
+max_forward_velocity_mps = 0.6
+min_yaw_rate_rps = -1.2
+max_yaw_rate_rps = 1.2
+
+[model]
+history_size = 3
+latent_dimension = 192
+candidate_count = 64
+checkpoint_bundle_schema = 1
+
+[collection]
+target_interaction_fraction_min = 0.20
+target_interaction_fraction_max = 0.30
+split_unit = "scenario_seed"
+required_splits = ["train", "validation", "test"]
+
+[runtime]
+single_motion_owner = true
+stop_on_surprise = true
+pause_physics_during_planning = true
+

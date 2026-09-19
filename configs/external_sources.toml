@@ -1,0 +1,31 @@
+schema_version = 1
+status = "MUST_PIN_BEFORE_INSTALL"
+
+[lewm]
+repository = "https://github.com/lucas-maes/le-wm"
+commit = "UNPINNED"
+license = "MIT"
+verified_locally = false
+notes = "Upstream README currently specifies Python 3.10, HDF5 data, Hydra training, and stable-worldmodel[train,env]."
+
+[dimos]
+repository = "https://github.com/dimensionalOS/dimos"
+commit = "c1c3cdc9d2ee54ca72259465688395699d7d99a2"
+verified_locally = false
+notes = "Source-audited locally. Its current unitree_go2 simulation selection aliases to unitree_go1 and its model loader has no Go2 policy case, so it is not verified as a Go2 runtime."
+
+[go2_model]
+source = "https://github.com/google-deepmind/mujoco_menagerie/tree/main/unitree_go2"
+revision = "menagerie:32224735cf004df068cd29ba099459f71bcd7d21 model-tree:98d14ab27a56c3623e29d852a997a422bbfefa19"
+license = "BSD-3-Clause"
+verified_locally = true
+notes = "MuJoCo 3.3.4 compiled and rendered the official Go2 model at 224x224 RGB on macOS arm64. This verifies the model/renderer only; no gait controller is attached or verified."
+
+[go2_controller_training]
+repository = "https://github.com/unitreerobotics/unitree_rl_mjlab"
+commit = "1425b15f73bd4095f0df53709d7c389c3eb9e790"
+license = "Apache-2.0"
+task = "Unitree-Go2-Flat"
+model_xml_sha256 = "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912"
+verified_locally = false
+notes = "Source-audited recovery route. Training, ONNX export, playback, and project adapter remain unverified. Its bundled Go2 XML and position-actuator semantics differ from the already rendered stock Menagerie model."

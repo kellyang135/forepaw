@@ -1,0 +1,727 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Go2 Lookahead Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --ground: #E9EDF0;
+  --panel: #F7F9FA;
+  --panel-2: #EEF2F4;
+  --ink: #14202B;
+  --muted: #5A6774;
+  --faint: #8B97A2;
+  --line: #D2D9DF;
+  --floor: #DFE5E9;
+  --grid: #C9D2D9;
+  --accent: #2450D6;
+  --accent-soft: rgba(36, 80, 214, 0.12);
+  --trail: #14202B;
+  --ok: #23874F;
+  --warn: #B7791F;
+  --alarm: #C9302C;
+  --alarm-soft: rgba(201, 48, 44, 0.12);
+  --f-push: #C27417;
+  --f-left: #1E8A77;
+  --f-right: #7856C2;
+  --f-adjust: #B2487A;
+  --f-stop: #7C8791;
+  --box-light: #D6A96A;
+  --box-light-edge: #9C7134;
+  --box-heavy: #46525E;
+  --box-heavy-edge: #222B33;
+  --robot: #F4F6F7;
+  --robot-edge: #14202B;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --cond: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0E1318; --panel: #151C23; --panel-2: #1B242C; --ink: #E4EAEF; --muted: #9AA7B3; --faint: #6D7A86;
+    --line: #29343E; --floor: #121A21; --grid: #212C36; --accent: #6F93FF; --accent-soft: rgba(111, 147, 255, 0.16);
+    --trail: #E4EAEF; --ok: #4CC27E; --warn: #E0A84A; --alarm: #FF5F57; --alarm-soft: rgba(255, 95, 87, 0.14);
+    --f-push: #E3963C; --f-left: #3DBFA6; --f-right: #A48AF0; --f-adjust: #E07AAB; --f-stop: #8C98A3;
+    --box-light: #C99A5B; --box-light-edge: #E8C48E; --box-heavy: #5B6975; --box-heavy-edge: #A9B6C1;
+    --robot: #DCE3E8; --robot-edge: #0E1318;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0E1318; --panel: #151C23; --panel-2: #1B242C; --ink: #E4EAEF; --muted: #9AA7B3; --faint: #6D7A86;
+  --line: #29343E; --floor: #121A21; --grid: #212C36; --accent: #6F93FF; --accent-soft: rgba(111, 147, 255, 0.16);
+  --trail: #E4EAEF; --ok: #4CC27E; --warn: #E0A84A; --alarm: #FF5F57; --alarm-soft: rgba(255, 95, 87, 0.14);
+  --f-push: #E3963C; --f-left: #3DBFA6; --f-right: #A48AF0; --f-adjust: #E07AAB; --f-stop: #8C98A3;
+  --box-light: #C99A5B; --box-light-edge: #E8C48E; --box-heavy: #5B6975; --box-heavy-edge: #A9B6C1;
+  --robot: #DCE3E8; --robot-edge: #0E1318;
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 20px 40px; display: grid; gap: 16px; }
+@media (max-width: 520px) { .wrap { padding-inline: 16px; } }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.brand h1 { font-family: var(--cond); font-weight: 700; font-size: 28px; letter-spacing: 0.01em; margin: 0; line-height: 1.05; text-wrap: balance; }
+.brand p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--mono); font-size: 11.5px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); background: var(--panel); white-space: nowrap; }
+.chip b { color: var(--ink); font-weight: 500; }
+.chip.toy { border-color: var(--warn); color: var(--warn); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 940px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.stage { display: grid; gap: 10px; }
+.arena-box { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+.arena-box.alarm { border-color: var(--alarm); box-shadow: 0 0 0 3px var(--alarm-soft); }
+canvas#arena { display: block; width: 100%; aspect-ratio: 1 / 1; max-width: 100%; cursor: crosshair; border-radius: 3px; }
+.hud { position: absolute; right: 20px; top: 20px; justify-content: flex-end; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: none; }
+.hud span { font-family: var(--mono); font-size: 11.5px; background: var(--panel); border: 1px solid var(--line); padding: 2px 7px; border-radius: 3px; font-variant-numeric: tabular-nums; }
+.banner { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); font-family: var(--cond); font-weight: 600; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 14px; border-radius: 4px; background: var(--panel); border: 1.5px solid var(--ink); white-space: nowrap; max-width: calc(100% - 40px); overflow: hidden; text-overflow: ellipsis; }
+.banner.alarm { border-color: var(--alarm); color: var(--alarm); }
+.banner.goal { border-color: var(--ok); color: var(--ok); }
+.banner.stall { border-color: var(--warn); color: var(--warn); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: var(--panel); }
+.seg button { border: 0; border-right: 1px solid var(--line); background: transparent; color: var(--muted); font: 500 13px var(--sans); padding: 7px 11px; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.btn { font: 600 13px var(--sans); padding: 7px 13px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.danger { color: var(--alarm); border-color: var(--alarm); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opt { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.opt select { font: 13px var(--sans); background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 5px 6px; }
+.hint { color: var(--faint); font-size: 12.5px; margin: 0; }
+
+.side { display: grid; gap: 12px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.panel h2 { font-family: var(--cond); font-weight: 600; font-size: 12.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 0; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.panel h2 .src { font-family: var(--mono); font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--faint); font-weight: 400; }
+
+.loop { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.loop div { font-family: var(--cond); font-weight: 600; font-size: 12.5px; text-align: center; padding: 6px 2px; border-radius: 4px; background: var(--panel-2); color: var(--faint); border: 1px solid transparent; line-height: 1.15; }
+.loop div small { display: block; font-family: var(--mono); font-weight: 400; font-size: 10.5px; }
+.loop div.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+.plan-id { font-family: var(--mono); font-size: 16px; font-weight: 500; word-break: break-all; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 14px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fam { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius: 3px; color: #fff; vertical-align: 1px; }
+.lockline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lock { font-family: var(--mono); font-size: 11.5px; color: var(--accent); border: 1px dashed var(--accent); padding: 1px 6px; border-radius: 3px; }
+.lock.off { color: var(--faint); border-color: var(--line); }
+
+.bars { display: grid; gap: 6px; }
+.bar-row { display: grid; grid-template-columns: 128px minmax(0, 1fr) 44px; gap: 8px; align-items: center; font-size: 12.5px; }
+.bar-row .lbl { display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
+.bar-row .lbl i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.bar-row.sel .lbl { font-weight: 600; }
+.bar-row .track { position: relative; height: 16px; display: flex; border-radius: 2px; overflow: hidden; background: var(--panel-2); }
+.bar-row.sel .track { outline: 2px solid var(--accent); outline-offset: 1px; }
+.bar-row .track span { height: 100%; }
+.bar-row .tot { font-family: var(--mono); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.bar-row .rk { font-family: var(--mono); color: var(--faint); font-size: 11px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--muted); }
+.legend span { display: inline-flex; gap: 5px; align-items: center; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+.surprise-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.big { font-family: var(--mono); font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.big small { font-size: 12px; color: var(--muted); font-weight: 400; }
+.pill { font-family: var(--mono); font-size: 11.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.ok { color: var(--ok); } .pill.alarm { color: var(--alarm); background: var(--alarm-soft); } .pill.idle { color: var(--faint); }
+svg#spark { width: 100%; height: 92px; display: block; }
+
+.log-wrap { max-height: 232px; overflow: auto; border-top: 1px solid var(--line); }
+table.log { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+table.log th { position: sticky; top: 0; background: var(--panel); text-align: left; font-weight: 500; color: var(--muted); padding: 5px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.log td { padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.log td.id { max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+table.log tr.bad td { color: var(--alarm); }
+table.log td.num, table.log th.num { text-align: right; }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px 28px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 14px; }
+.notes h3 { font-family: var(--cond); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin: 0 0 4px; }
+.notes p { margin: 0; max-width: 62ch; }
+.notes code { font-family: var(--mono); font-size: 12px; color: var(--ink); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Go2 Lookahead Console</h1>
+      <p>The robot imagines 64 three-second futures, picks one, runs only its first half-second, then checks reality against the locked prediction.</p>
+    </div>
+    <div class="chips">
+      <span class="chip">bundle <b id="bundleId">toy-kinematic-v0</b></span>
+      <span class="chip">level <b>F0 predictive control</b></span>
+      <span class="chip toy">stand-in model, not LeWM</span>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="stage" aria-label="Arena">
+      <div class="arena-box" id="arenaBox">
+        <canvas id="arena" aria-label="Overhead arena view: 3 by 3 metre floor with robot, boxes, goal and predicted paths"></canvas>
+        <div class="hud"><span id="hudT">t 0.0 s</span><span id="hudB">block 0</span><span id="hudP">ready</span></div>
+        <div class="banner" id="banner" hidden></div>
+      </div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Scenario">
+          <button id="sc-push" aria-pressed="true" data-sc="push">Push light box</button>
+          <button id="sc-detour" aria-pressed="false" data-sc="detour">Detour heavy box</button>
+          <button id="sc-swap" aria-pressed="false" data-sc="swap">Mislabeled box</button>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="runBtn">Run</button>
+        <button class="btn" id="stepBtn">Step one block</button>
+        <button class="btn" id="resetBtn">Reset</button>
+        <button class="btn danger" id="swapBtn" title="Make the light-looking box immovable without telling the model">Swap box physics</button>
+      </div>
+      <div class="controls">
+        <label class="opt"><input type="checkbox" id="showAll" checked> Show all 64 futures</label>
+        <label class="opt" for="goalMode">Goal cost
+          <select id="goalMode">
+            <option value="min">closest along rollout</option>
+            <option value="terminal">terminal only (repo)</option>
+          </select>
+        </label>
+        <label class="opt" for="speed">Speed
+          <select id="speed">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">Click the floor to move the goal while the robot is idle.</p>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-label="Control loop">
+        <h2>Control loop <span class="src" id="loopMeta">replan every 0.5 s</span></h2>
+        <div class="loop" id="loop">
+          <div data-ph="imagine">Imagine<small>64 × 6</small></div>
+          <div data-ph="score">Score<small>rank</small></div>
+          <div data-ph="lock">Lock<small>before move</small></div>
+          <div data-ph="execute">Execute<small>block 0</small></div>
+          <div data-ph="compare">Compare<small>surprise</small></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Locked plan">
+        <h2>Locked plan <span class="src">PlanResult</span></h2>
+        <div class="lockline"><span class="plan-id" id="planId">–</span></div>
+        <dl class="kv">
+          <dt>family</dt><dd id="planFam">–</dd>
+          <dt>first action</dt><dd id="planAct">–</dd>
+          <dt>reason</dt><dd id="planReason">–</dd>
+          <dt>locked at</dt><dd><span class="lock off" id="planLock">not locked</span></dd>
+          <dt>plan latency</dt><dd id="planLat">–</dd>
+        </dl>
+      </section>
+
+      <section class="panel" aria-label="Score breakdown">
+        <h2>Best plan per family <span class="src">ScoreBreakdown · lower wins</span></h2>
+        <div class="bars" id="bars"></div>
+        <div class="legend" id="legend"></div>
+      </section>
+
+      <section class="panel" aria-label="Surprise monitor">
+        <h2>Surprise <span class="src">SurpriseEvent</span></h2>
+        <div class="surprise-top">
+          <div class="big" id="sNow">–<small> / 1.00 threshold</small></div>
+          <span class="pill idle" id="sPill">unarmed</span>
+        </div>
+        <svg id="spark" role="img" aria-label="Prediction discrepancy per block against the stop threshold"></svg>
+      </section>
+
+      <section class="panel" aria-label="Block log">
+        <h2>Block log <span class="src">newest first</span></h2>
+        <div class="log-wrap">
+          <table class="log">
+            <thead><tr><th>#</th><th>candidate</th><th class="num">v</th><th class="num">ω</th><th class="num">err cm</th><th class="num">surprise</th></tr></thead>
+            <tbody id="logBody"><tr><td colspan="6" style="color:var(--faint)">Press Run or Step to execute the first block.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="notes">
+    <div><h3>What is real here</h3><p>The 64-candidate library, the five score terms and their weights (1, 4, 2, 0.1, 0.1), the 0.65 risk fallback to <code>stop_hold</code>, and the latched stop all mirror <code>go2wm.planning</code> and <code>go2wm.runtime</code>.</p></div>
+    <div><h3>What is a stand-in</h3><p>A kinematic toy replaces LeWM. It reads simulator poses and guesses box mobility from appearance; the real planner sees only three 224 × 224 RGB frames. Surprise here is a scaled pose error, not latent RMSE. None of these numbers are results.</p></div>
+    <div><h3>Goal cost toggle</h3><p>With <code>terminal only</code>, the planner can deadlock near the goal: <code>stop_then_creep</code> ends closest, so it wins, but its executed first block never moves. The page flags this as a stall.</p></div>
+  </footer>
+</div>
+<script>
+// Go2 MPC stand-in: candidate library, toy dynamics, scorer, planner, surprise.
+const CORE = (() => {
+  const ARENA = 3.0, BLOCK = 0.5, DT = 0.02, SUB = Math.round(BLOCK / DT);
+  const ROBOT_R = 0.15, BOX_R = 0.16, TAU = 0.08, WALL = 0.02;
+  const W = { goal: 1.0, risk: 4.0, stall: 2.0, effort: 0.1, change: 0.1 };
+  const MIN_PROGRESS = 0.08, ACTIVE_V = 0.10, RISK_LIMIT = 0.65;
+  const SURPRISE = { scale: 0.04, threshold: 1.0, consecutive: 1 };
+
+  const lab = (v) => v.toFixed(2).replace('.', 'p');
+  const sgn = (v) => (v >= 0 ? 'p' : 'm') + lab(Math.abs(v));
+  const A = (v, w) => ({ v, w });
+
+  function buildLibrary() {
+    const c = [];
+    for (const s of [0.25, 0.4, 0.55]) for (const yb of [-0.12, 0, 0.12])
+      c.push({ id: `push_v${lab(s)}_yaw${sgn(yb)}`, family: 'approach_push', actions: Array(6).fill(0).map(() => A(s, yb)) });
+    [[0.15, 0.25, 0.35, 0.45, 0.45, 0.45], [0.2, 0.3, 0.4, 0.5, 0.5, 0.5], [0.25, 0.35, 0.45, 0.55, 0.55, 0.55]]
+      .forEach((p, i) => c.push({ id: `push_accel_${i + 1}`, family: 'approach_push', actions: p.map((s) => A(s, 0)) }));
+    for (const [d, fam] of [[1, 'detour_left'], [-1, 'detour_right']]) {
+      const side = d > 0 ? 'left' : 'right';
+      for (const s of [0.3, 0.45]) for (const tr of [0.6, 0.9]) for (const n of [1, 2]) for (const rr of [0.6, 0.9]) {
+        const acts = [];
+        for (let k = 0; k < 6; k++) {
+          if (k < n) acts.push(A(s * 0.75, d * tr));
+          else if (k >= 6 - n) acts.push(A(s * 0.85, -d * rr));
+          else acts.push(A(s, 0));
+        }
+        c.push({ id: `${side}_v${lab(s)}_turn${lab(tr)}_n${n}_recover${lab(rr)}`, family: fam, actions: acts });
+      }
+    }
+    for (const y of [-0.8, -0.4, 0.4, 0.8]) for (const s of [0.2, 0.35]) for (const n of [1, 2])
+      c.push({ id: `adjust_yaw${sgn(y)}_v${lab(s)}_n${n}`, family: 'turn_adjust', actions: Array(6).fill(0).map((_, k) => (k < n ? A(s * 0.7, y) : A(s, 0))) });
+    const st = A(0, 0);
+    c.push({ id: 'stop_hold', family: 'stop', actions: Array(6).fill(st) });
+    c.push({ id: 'stop_then_creep', family: 'stop', actions: [st, st, A(0.2, 0), A(0.2, 0), A(0.2, 0), A(0.2, 0)] });
+    c.push({ id: 'stop_then_left', family: 'stop', actions: [st, st, A(0.18, 0.45), A(0.18, 0.45), A(0.22, 0), A(0.22, 0)] });
+    c.push({ id: 'stop_then_right', family: 'stop', actions: [st, st, A(0.18, -0.45), A(0.18, -0.45), A(0.22, 0), A(0.22, 0)] });
+    if (c.length !== 64) throw new Error('library size ' + c.length);
+    return c;
+  }
+
+  const clone = (s) => ({ robot: { ...s.robot }, boxes: s.boxes.map((b) => ({ ...b })) });
+
+  // Advance one 0.5 s block. mobile(box) decides push behaviour; rng adds actuation noise.
+  function stepBlock(state, act, mobile, rng, record) {
+    const s = clone(state), r = s.robot;
+    const cmdV = act.v + (rng ? rng() * 0.02 : 0), cmdW = act.w + (rng ? rng() * 0.03 : 0);
+    let press = 0, wall = 0, contact = false;
+    const path = [], frames = record ? [{ x: r.x, y: r.y, yaw: r.yaw, b: s.boxes.map((b) => [b.x, b.y]) }] : null;
+    for (let i = 0; i < SUB; i++) {
+      r.v += (cmdV - r.v) * (DT / TAU);
+      r.w += (cmdW - r.w) * (DT / TAU);
+      r.yaw += r.w * DT;
+      r.x += r.v * Math.cos(r.yaw) * DT;
+      r.y += r.v * Math.sin(r.yaw) * DT;
+      for (const b of s.boxes) {
+        const dx = b.x - r.x, dy = b.y - r.y, d = Math.hypot(dx, dy) || 1e-9, lim = ROBOT_R + BOX_R;
+        if (d >= lim) continue;
+        contact = true;
+        const nx = dx / d, ny = dy / d, ov = lim - d;
+        let moved = false;
+        if (mobile(b)) {
+          const bx = b.x + nx * ov, by = b.y + ny * ov;
+          const inside = bx > BOX_R && bx < ARENA - BOX_R && by > BOX_R && by < ARENA - BOX_R;
+          const hits = s.boxes.some((o) => o !== b && Math.hypot(o.x - bx, o.y - by) < 2 * BOX_R);
+          if (inside && !hits) { b.x = bx; b.y = by; moved = true; }
+        }
+        if (!moved) {
+          r.x -= nx * ov; r.y -= ny * ov;
+          if (r.v * (Math.cos(r.yaw) * nx + Math.sin(r.yaw) * ny) > ACTIVE_V) press++;
+        }
+      }
+      const cx = Math.min(ARENA - ROBOT_R, Math.max(ROBOT_R, r.x)), cy = Math.min(ARENA - ROBOT_R, Math.max(ROBOT_R, r.y));
+      if (cx !== r.x || cy !== r.y) wall++;
+      r.x = cx; r.y = cy;
+      if (i % 5 === 4) path.push([r.x, r.y]);
+      if (frames) frames.push({ x: r.x, y: r.y, yaw: r.yaw, b: s.boxes.map((b) => [b.x, b.y]) });
+    }
+    const risk = Math.min(0.98, 0.04 + 0.9 * Math.min(1, press / 8) + (wall > 2 ? 0.8 : 0));
+    return { state: s, path, frames, risk, contact };
+  }
+
+  function rollout(state, cand, belief) {
+    let s = state; const states = [], path = [[s.robot.x, s.robot.y]];
+    for (const a of cand.actions) {
+      const out = stepBlock(s, a, belief, null);
+      s = out.state; states.push({ robot: { ...s.robot }, boxes: s.boxes.map((b) => ({ ...b })), risk: out.risk });
+      path.push(...out.path);
+    }
+    return { cand, states, path };
+  }
+
+  function score(ro, goal, start, prev, goalMode) {
+    const dist = (p) => Math.hypot(p.x - goal.x, p.y - goal.y);
+    const d0 = dist(start);
+    const dT = goalMode === 'terminal' ? dist(ro.states[ro.states.length - 1].robot) : Math.min(...ro.states.map((x) => dist(x.robot)));
+    const acts = ro.cand.actions;
+    const meanV = acts.reduce((a, x) => a + Math.abs(x.v), 0) / acts.length;
+    const active = Math.min(1, meanV / ACTIVE_V);
+    const stall = Math.max(0, MIN_PROGRESS - (d0 - dT)) * active;
+    const risk = Math.max(...ro.states.map((s) => s.risk));
+    const effort = acts.reduce((a, x) => a + x.v * x.v + x.w * x.w, 0) / acts.length;
+    const pairs = [];
+    if (prev) pairs.push([prev, acts[0]]);
+    for (let i = 1; i < acts.length; i++) pairs.push([acts[i - 1], acts[i]]);
+    const change = pairs.length ? pairs.reduce((a, [l, r]) => a + (r.v - l.v) ** 2 + (r.w - l.w) ** 2, 0) / pairs.length : 0;
+    const parts = { goal: W.goal * dT, risk: W.risk * risk, stall: W.stall * stall, effort: W.effort * effort, change: W.change * change };
+    return { total: parts.goal + parts.risk + parts.stall + parts.effort + parts.change, parts, dT, risk };
+  }
+
+  function plan(state, goal, library, belief, prev, goalMode) {
+    const t0 = (typeof performance !== 'undefined' ? performance : Date).now();
+    const ranked = library.map((c) => {
+      const ro = rollout(state, c, belief);
+      return { ...ro, score: score(ro, goal, state.robot, prev, goalMode) };
+    }).sort((a, b) => a.score.total - b.score.total || (a.cand.id < b.cand.id ? -1 : 1));
+    ranked.forEach((r, i) => (r.rank = i + 1));
+    let selected = ranked[0], reason = 'minimum_score';
+    const moving = ranked.filter((r) => r.cand.family !== 'stop');
+    if (moving.length && moving.every((r) => r.score.risk > RISK_LIMIT)) {
+      selected = ranked.find((r) => r.cand.id === 'stop_hold'); reason = 'all_moving_candidates_exceed_risk_limit';
+    }
+    const latency = (typeof performance !== 'undefined' ? performance : Date).now() - t0;
+    return { ranked, selected, reason, latencyMs: latency, lockedAt: new Date().toISOString() };
+  }
+
+  function discrepancy(pred, act) {
+    const f = [pred.robot.x - act.robot.x, pred.robot.y - act.robot.y];
+    pred.boxes.forEach((b, i) => f.push(b.x - act.boxes[i].x, b.y - act.boxes[i].y));
+    return Math.sqrt(f.reduce((a, e) => a + (e / SURPRISE.scale) ** 2, 0) / f.length);
+  }
+
+  function gauss(seed) {
+    let s = seed >>> 0;
+    const u = () => ((s = (s * 1664525 + 1013904223) >>> 0) + 0.5) / 4294967296;
+    return () => Math.sqrt(-2 * Math.log(u())) * Math.cos(2 * Math.PI * u());
+  }
+
+  return { ARENA, BLOCK, ROBOT_R, BOX_R, W, RISK_LIMIT, SURPRISE, buildLibrary, stepBlock, rollout, plan, discrepancy, gauss };
+})();
+if (typeof module !== 'undefined') module.exports = CORE;
+(() => {
+  const C = CORE, LIB = C.buildLibrary(), MAX_BLOCKS = 40;
+  const FAM = {
+    approach_push: { v: '--f-push', label: 'push' },
+    detour_left: { v: '--f-left', label: 'detour left' },
+    detour_right: { v: '--f-right', label: 'detour right' },
+    turn_adjust: { v: '--f-adjust', label: 'turn adjust' },
+    stop: { v: '--f-stop', label: 'stop' },
+  };
+  const PARTS = [
+    ['goal', 'goal distance', '--muted'], ['risk', 'failure risk', '--alarm'], ['stall', 'stall', '--warn'],
+    ['effort', 'effort', '--faint'], ['change', 'command change', '--grid'],
+  ];
+  const SCEN = {
+    push: [{ id: 'box_a', look: 'light', movable: true, x: 1.35, y: 1.62 }, { id: 'box_b', look: 'heavy', movable: false, x: 1.9, y: 0.6 }],
+    detour: [{ id: 'box_b', look: 'heavy', movable: false, x: 1.35, y: 1.62 }, { id: 'box_a', look: 'light', movable: true, x: 2.1, y: 0.7 }],
+    swap: [{ id: 'box_a', look: 'light', movable: false, x: 1.35, y: 1.62 }, { id: 'box_b', look: 'heavy', movable: false, x: 1.9, y: 0.6 }],
+  };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const DUR = reduce ? { imagine: 60, score: 60, lock: 60, execute: 300, compare: 60 } : { imagine: 420, score: 420, lock: 220, execute: 760, compare: 360 };
+  const ORDER = ['imagine', 'score', 'lock', 'execute', 'compare'];
+  const $ = (id) => document.getElementById(id);
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const belief = (b) => b.look === 'light';
+  const truth = (b) => b.movable;
+
+  let S, scenario = 'push', goal = { x: 2.55, y: 2.05, r: 0.25 };
+
+  function reset() {
+    S = {
+      world: { robot: { x: 0.4, y: 1.5, yaw: 0, v: 0, w: 0 }, boxes: SCEN[scenario].map((b) => ({ ...b })) },
+      start: SCEN[scenario].map((b) => ({ ...b })),
+      rng: C.gauss(7), prev: null, block: 0, t: 0, trail: [[0.4, 1.5]], locks: [], log: [], surprise: [],
+      lock: null, status: 'idle', phase: null, phaseT: 0, plan: null, exec: null, stepOnce: false, zeroRun: 0, alarm: false,
+    };
+    S.plan = C.plan(S.world, goal, LIB, belief, null, $('goalMode').value);
+    S.phase = 'score'; S.phaseT = 1;
+    renderPanels(); setBanner(null); updateButtons();
+  }
+
+  function startBlock() {
+    S.plan = C.plan(S.world, goal, LIB, belief, S.prev, $('goalMode').value);
+    S.phase = 'imagine'; S.phaseT = 0; S.exec = null;
+    renderPanels();
+  }
+
+  function enter(phase) {
+    S.phase = phase; S.phaseT = 0;
+    const sel = S.plan.selected;
+    if (phase === 'lock') {
+      S.lock = { pred: sel.states[0], at: new Date().toISOString(), id: sel.cand.id };
+    }
+    if (phase === 'execute') {
+      S.exec = C.stepBlock(S.world, sel.cand.actions[0], truth, S.rng, true);
+    }
+    if (phase === 'compare') finishBlock();
+    renderPanels();
+  }
+
+  function finishBlock() {
+    const sel = S.plan.selected, act = sel.cand.actions[0], out = S.exec;
+    const d = C.discrepancy(S.lock.pred, out.state);
+    const err = Math.hypot(S.lock.pred.robot.x - out.state.robot.x, S.lock.pred.robot.y - out.state.robot.y);
+    S.world = out.state; S.prev = act; S.block++; S.t += C.BLOCK;
+    out.frames.forEach((f) => S.trail.push([f.x, f.y]));
+    S.locks.push({ pred: S.lock.pred.robot, act: { x: out.state.robot.x, y: out.state.robot.y }, bad: d > C.SURPRISE.threshold });
+    S.surprise.push(d);
+    S.log.unshift({ k: S.block, id: sel.cand.id, fam: sel.cand.family, v: act.v, w: act.w, err, d });
+    const reached = out.frames.some((f) => Math.hypot(f.x - goal.x, f.y - goal.y) < goal.r);
+    S.zeroRun = act.v === 0 && act.w === 0 && S.plan.reason === 'minimum_score' ? S.zeroRun + 1 : 0;
+    if (d > C.SURPRISE.threshold) { S.alarm = true; end('alarm', `Stop latched: surprise ${d.toFixed(2)} > ${C.SURPRISE.threshold.toFixed(2)}`); }
+    else if (reached) end('goal', `Goal reached in ${S.block} blocks · ${S.t.toFixed(1)} s`);
+    else if (S.zeroRun >= 4) end('stall', `Stalled: ${sel.cand.id} wins but never moves`);
+    else if (S.block >= MAX_BLOCKS) end('stall', `Budget spent: ${MAX_BLOCKS} blocks without reaching goal`);
+  }
+
+  function end(kind, text) { S.status = kind; setBanner(kind, text); updateButtons(); }
+
+  function setBanner(kind, text) {
+    const b = $('banner');
+    b.hidden = !kind; b.className = 'banner ' + (kind || ''); b.textContent = text || '';
+    $('arenaBox').classList.toggle('alarm', kind === 'alarm');
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(100, now - last) * parseFloat($('speed').value); last = now;
+    if (S.status === 'running' && S.phase) {
+      S.phaseT += dt / DUR[S.phase];
+      if (S.phaseT >= 1) {
+        const i = ORDER.indexOf(S.phase);
+        if (i < ORDER.length - 1) enter(ORDER[i + 1]);
+        else if (S.status === 'running') {
+          if (S.stepOnce) { S.status = 'paused'; S.stepOnce = false; S.phaseT = 1; updateButtons(); }
+          else startBlock();
+        }
+      }
+      if (S.status !== 'running') renderPanels();
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- canvas ----------
+  const cv = $('arena'), ctx = cv.getContext('2d');
+  let px = 1, pad = 26;
+  function resize() {
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.width * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    pad = r.width < 420 ? 20 : 26;
+    px = (r.width - pad * 2) / C.ARENA;
+  }
+  new ResizeObserver(resize).observe(cv);
+  const X = (x) => pad + x * px, Y = (y) => pad + (C.ARENA - y) * px;
+
+  function pathLine(pts, color, width, alpha, dash) {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    if (dash) ctx.setLineDash(dash);
+    ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.stroke(); ctx.restore();
+  }
+
+  function drawBox(b, x, y, ghost) {
+    const s = C.BOX_R * 1.75 * px, light = b.look === 'light';
+    ctx.save(); ctx.translate(X(x), Y(y));
+    if (ghost) {
+      ctx.setLineDash([4, 3]); ctx.strokeStyle = css('--accent'); ctx.lineWidth = 1.5; ctx.strokeRect(-s / 2, -s / 2, s, s);
+    } else {
+      ctx.fillStyle = css(light ? '--box-light' : '--box-heavy'); ctx.strokeStyle = css(light ? '--box-light-edge' : '--box-heavy-edge');
+      ctx.lineWidth = 1.5; ctx.fillRect(-s / 2, -s / 2, s, s); ctx.strokeRect(-s / 2, -s / 2, s, s);
+      ctx.globalAlpha = 0.55;
+      if (light) { ctx.fillStyle = css('--box-light-edge'); ctx.fillRect(-s / 2, -s * 0.07, s, s * 0.14); }
+      else { ctx.beginPath(); ctx.moveTo(-s / 2, -s / 2); ctx.lineTo(s / 2, s / 2); ctx.moveTo(s / 2, -s / 2); ctx.lineTo(-s / 2, s / 2); ctx.stroke(); }
+      ctx.globalAlpha = 1; ctx.fillStyle = css('--muted'); ctx.font = `500 ${Math.max(10, px * 0.075)}px ${css('--mono')}`;
+      ctx.textAlign = 'center'; ctx.fillText(light ? 'looks light' : 'looks heavy', 0, -s / 2 - 6);
+    }
+    ctx.restore();
+  }
+
+  function drawRobot(x, y, yaw, ghost) {
+    const L = 0.36 * px, Wd = 0.2 * px;
+    ctx.save(); ctx.translate(X(x), Y(y)); ctx.rotate(-yaw);
+    if (ghost) {
+      ctx.setLineDash([4, 3]); ctx.strokeStyle = css('--accent'); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect(-L / 2, -Wd / 2, L, Wd, Wd * 0.3); ctx.stroke();
+    } else {
+      ctx.fillStyle = css('--robot-edge');
+      for (const [lx, ly] of [[0.36, 0.5], [0.36, -0.5], [-0.36, 0.5], [-0.36, -0.5]]) { ctx.beginPath(); ctx.arc(lx * L, ly * Wd * 1.25, Wd * 0.16, 0, 7); ctx.fill(); }
+      ctx.fillStyle = css('--robot'); ctx.strokeStyle = css('--robot-edge'); ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.roundRect(-L / 2, -Wd / 2, L, Wd, Wd * 0.3); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = css('--accent'); ctx.beginPath(); ctx.moveTo(L / 2 - 1, 0); ctx.lineTo(L * 0.22, -Wd * 0.3); ctx.lineTo(L * 0.22, Wd * 0.3); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function draw() {
+    if (!S) return;
+    const w = cv.getBoundingClientRect().width;
+    ctx.clearRect(0, 0, w, w);
+    ctx.fillStyle = css('--floor'); ctx.fillRect(X(0), Y(C.ARENA), C.ARENA * px, C.ARENA * px);
+    ctx.strokeStyle = css('--grid'); ctx.lineWidth = 1;
+    ctx.fillStyle = css('--faint'); ctx.font = `10px ${css('--mono')}`;
+    for (let m = 0; m <= C.ARENA + 1e-9; m += 0.5) {
+      ctx.beginPath(); ctx.moveTo(X(m), Y(0)); ctx.lineTo(X(m), Y(C.ARENA)); ctx.moveTo(X(0), Y(m)); ctx.lineTo(X(C.ARENA), Y(m)); ctx.stroke();
+      ctx.textAlign = 'center'; ctx.fillText(m.toFixed(1), X(m), Y(0) + 14);
+      ctx.textAlign = 'right'; ctx.fillText(m.toFixed(1), X(0) - 4, Y(m) + 3);
+    }
+
+    // goal
+    ctx.save(); ctx.strokeStyle = css('--ok'); ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.arc(X(goal.x), Y(goal.y), goal.r * px, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(X(goal.x) - 6, Y(goal.y)); ctx.lineTo(X(goal.x) + 6, Y(goal.y)); ctx.moveTo(X(goal.x), Y(goal.y) - 6); ctx.lineTo(X(goal.x), Y(goal.y) + 6); ctx.stroke();
+    ctx.fillStyle = css('--ok'); ctx.font = `600 11px ${css('--mono')}`; ctx.textAlign = 'center'; ctx.fillText('goal', X(goal.x), Y(goal.y) - goal.r * px - 6);
+    ctx.restore();
+
+    // candidate futures
+    const P = S.plan, ph = S.phase, t = Math.min(1, S.phaseT);
+    const showFutures = P && ['imagine', 'score', 'lock'].includes(ph) && S.status !== 'alarm';
+    if (showFutures) {
+      const sel = P.selected, top = new Set(P.ranked.slice(0, 6).map((r) => r.cand.id));
+      if ($('showAll').checked) {
+        P.ranked.forEach((r, i) => {
+          let a = ph === 'imagine' ? 0.5 * Math.min(1, t * 1.6 - (i % 16) / 32) : top.has(r.cand.id) ? 0.55 : 0.14;
+          if (ph === 'lock') a *= 0.5;
+          const pts = ph === 'imagine' ? r.path.slice(0, Math.max(2, Math.ceil(r.path.length * t))) : r.path;
+          if (a > 0) pathLine(pts, css(FAM[r.cand.family].v), top.has(r.cand.id) && ph !== 'imagine' ? 1.8 : 1.1, a);
+        });
+      }
+      if (ph !== 'imagine') {
+        const a = ph === 'score' ? Math.min(1, t * 2) : 1;
+        pathLine(sel.path, css('--accent'), 3, a, [7, 5]);
+        ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css('--accent');
+        sel.states.forEach((s, i) => { ctx.beginPath(); ctx.arc(X(s.robot.x), Y(s.robot.y), i === 0 ? 5 : 3, 0, 7); ctx.fill(); });
+        ctx.restore();
+        const endS = sel.states[sel.states.length - 1];
+        endS.boxes.forEach((b, i) => { const s0 = S.world.boxes[i]; if (Math.hypot(b.x - s0.x, b.y - s0.y) > 0.02) drawBox(b, b.x, b.y, true); });
+      }
+    }
+
+    // executed trail + lock whiskers
+    pathLine(S.trail, css('--trail'), 2.2, 0.85);
+    S.locks.forEach((l) => {
+      ctx.save(); ctx.strokeStyle = css(l.bad ? '--alarm' : '--accent'); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(X(l.pred.x), Y(l.pred.y)); ctx.lineTo(X(l.act.x), Y(l.act.y)); ctx.stroke();
+      ctx.beginPath(); ctx.arc(X(l.pred.x), Y(l.pred.y), l.bad ? 5 : 3.5, 0, 7); ctx.stroke(); ctx.restore();
+    });
+
+    // live bodies
+    let rob = S.world.robot, boxes = S.world.boxes.map((b) => [b.x, b.y]);
+    if (ph === 'execute' && S.exec) {
+      const fr = S.exec.frames, f = t * (fr.length - 1), i = Math.floor(f), k = f - i, a = fr[i], b = fr[Math.min(fr.length - 1, i + 1)];
+      rob = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, yaw: a.yaw + (b.yaw - a.yaw) * k };
+      boxes = a.b.map((p, j) => [p[0] + (b.b[j][0] - p[0]) * k, p[1] + (b.b[j][1] - p[1]) * k]);
+      pathLine(fr.slice(0, i + 1).map((q) => [q.x, q.y]).concat([[rob.x, rob.y]]), css('--trail'), 2.2, 0.85);
+    }
+    if ((ph === 'lock' || ph === 'execute' || ph === 'compare') && S.lock) {
+      const pr = S.lock.pred.robot; drawRobot(pr.x, pr.y, pr.yaw, true);
+      S.lock.pred.boxes.forEach((b, i) => { const s0 = boxes[i]; if (Math.hypot(b.x - s0[0], b.y - s0[1]) > 0.015) drawBox(b, b.x, b.y, true); });
+    }
+    S.world.boxes.forEach((b, i) => drawBox(b, boxes[i][0], boxes[i][1], false));
+    drawRobot(rob.x, rob.y, rob.yaw, false);
+
+    $('hudT').textContent = `t ${(S.t + (ph === 'execute' ? t * C.BLOCK : 0)).toFixed(1)} s`;
+    $('hudB').textContent = `block ${S.block}`;
+    $('hudP').textContent = S.status === 'running' ? ph : S.status === 'idle' ? 'ready' : S.status;
+    document.querySelectorAll('#loop div').forEach((d) => d.classList.toggle('on', S.status === 'running' && d.dataset.ph === ph));
+  }
+
+  // ---------- panels ----------
+  const f2 = (v) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2);
+  function famChip(f) { return `<span class="fam" style="background:${css(FAM[f].v)}">${FAM[f].label}</span>`; }
+
+  function renderPanels() {
+    const P = S.plan; if (!P) return;
+    const sel = P.selected, a = sel.cand.actions[0];
+    $('planId').textContent = sel.cand.id;
+    $('planFam').innerHTML = famChip(sel.cand.family) + ` rank ${sel.rank} of 64`;
+    $('planAct').textContent = `v ${a.v.toFixed(2)} m/s · ω ${f2(a.w)} rad/s · 0.5 s`;
+    $('planReason').textContent = P.reason;
+    const locked = S.lock && S.lock.id === sel.cand.id && ['lock', 'execute', 'compare'].includes(S.phase);
+    const l = $('planLock');
+    l.className = 'lock' + (locked ? '' : ' off');
+    l.textContent = locked ? S.lock.at.slice(11, 23) + ' UTC' : S.status === 'idle' ? 'preview, not locked' : 'not locked';
+    $('planLat').textContent = `${P.latencyMs.toFixed(1)} ms in this browser (gate p50 ≤ 250 ms)`;
+
+    const best = {};
+    P.ranked.forEach((r) => { if (!best[r.cand.family]) best[r.cand.family] = r; });
+    const rows = Object.values(best).sort((x, y) => x.rank - y.rank);
+    const max = Math.max(...rows.map((r) => r.score.total));
+    $('bars').innerHTML = rows.map((r) => {
+      const segs = PARTS.map(([k, , v]) => `<span style="width:${(100 * r.score.parts[k]) / max}%;background:${css(v)}" title="${k} ${r.score.parts[k].toFixed(3)}"></span>`).join('');
+      return `<div class="bar-row${r === sel ? ' sel' : ''}" title="${r.cand.id}"><div class="lbl"><i style="background:${css(FAM[r.cand.family].v)}"></i>${FAM[r.cand.family].label} <span class="rk">#${r.rank}</span></div><div class="track">${segs}</div><div class="tot">${r.score.total.toFixed(2)}</div></div>`;
+    }).join('');
+    $('legend').innerHTML = PARTS.map(([, n, v]) => `<span><i style="background:${css(v)}"></i>${n}</span>`).join('');
+
+    const d = S.surprise[S.surprise.length - 1];
+    $('sNow').innerHTML = `${d === undefined ? '–' : d.toFixed(2)}<small> / ${C.SURPRISE.threshold.toFixed(2)} threshold</small>`;
+    const pill = $('sPill');
+    if (S.alarm) { pill.className = 'pill alarm'; pill.textContent = 'alarm_latched · stop'; }
+    else if (d === undefined) { pill.className = 'pill idle'; pill.textContent = 'unarmed'; }
+    else { pill.className = 'pill ok'; pill.textContent = 'normal'; }
+    spark();
+
+    $('logBody').innerHTML = S.log.length ? S.log.map((r) => `<tr class="${r.d > C.SURPRISE.threshold ? 'bad' : ''}"><td>${r.k}</td><td class="id" title="${r.id}">${r.id}</td><td class="num">${r.v.toFixed(2)}</td><td class="num">${f2(r.w)}</td><td class="num">${(r.err * 100).toFixed(1)}</td><td class="num">${r.d.toFixed(2)}</td></tr>`).join('')
+      : '<tr><td colspan="6" style="color:var(--faint)">Press Run or Step to execute the first block.</td></tr>';
+  }
+
+  function spark() {
+    const svg = $('spark'), w = svg.getBoundingClientRect().width || 300, h = 92, l = 30, r = 8, tp = 8, b = 18;
+    const n = Math.max(12, S.surprise.length), vals = S.surprise;
+    const ymax = Math.max(2, ...vals.map((v) => Math.min(v, 6)) , 1.4);
+    const x = (i) => l + (i / (n - 1)) * (w - l - r), y = (v) => tp + (1 - Math.min(v, ymax) / ymax) * (h - tp - b);
+    const th = C.SURPRISE.threshold;
+    let s = `<g font-family='${css('--mono')}' font-size="10" fill="${css('--faint')}">`;
+    for (const v of [0, th, ymax]) s += `<text x="${l - 5}" y="${y(v) + 3}" text-anchor="end">${v.toFixed(1)}</text>`;
+    s += `<text x="${l}" y="${h - 4}">block 1</text><text x="${w - r}" y="${h - 4}" text-anchor="end">${n}</text></g>`;
+    s += `<line x1="${l}" x2="${w - r}" y1="${y(0)}" y2="${y(0)}" stroke="${css('--line')}"/>`;
+    s += `<line x1="${l}" x2="${w - r}" y1="${y(th)}" y2="${y(th)}" stroke="${css('--alarm')}" stroke-dasharray="4 3"/>`;
+    if (vals.length) {
+      const pts = vals.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+      s += `<polygon points="${x(0)},${y(0)} ${pts} ${x(vals.length - 1)},${y(0)}" fill="${css('--accent-soft')}"/>`;
+      s += `<polyline points="${pts}" fill="none" stroke="${css('--accent')}" stroke-width="1.8" stroke-linejoin="round"/>`;
+      vals.forEach((v, i) => { const bad = v > th, last = i === vals.length - 1; if (bad || last) s += `<circle cx="${x(i)}" cy="${y(v)}" r="${bad ? 4 : 3}" fill="${css(bad ? '--alarm' : '--accent')}"/>`; });
+    }
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`); svg.innerHTML = s;
+  }
+
+  function updateButtons() {
+    const done = ['alarm', 'goal', 'stall'].includes(S.status);
+    $('runBtn').textContent = S.status === 'running' && !S.stepOnce ? 'Pause' : 'Run';
+    $('runBtn').disabled = done; $('stepBtn').disabled = done || (S.status === 'running');
+    const light = S.world.boxes.find((b) => b.look === 'light');
+    $('swapBtn').disabled = done || !light || !light.movable;
+  }
+
+  // ---------- controls ----------
+  function go(once) {
+    if (S.status === 'idle') { S.status = 'running'; S.stepOnce = once; startBlock(); }
+    else { S.status = 'running'; S.stepOnce = once; if (S.phase === 'compare' && S.phaseT >= 1) startBlock(); }
+    updateButtons();
+  }
+  $('runBtn').onclick = () => { if (S.status === 'running' && !S.stepOnce) { S.status = 'paused'; renderPanels(); updateButtons(); } else go(false); };
+  $('stepBtn').onclick = () => go(true);
+  $('resetBtn').onclick = reset;
+  $('swapBtn').onclick = () => { S.world.boxes.forEach((b) => { if (b.look === 'light') b.movable = false; }); $('swapBtn').disabled = true; };
+  document.querySelectorAll('.seg button').forEach((b) => (b.onclick = () => {
+    scenario = b.dataset.sc; document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); reset();
+  }));
+  $('goalMode').onchange = () => { if (S.status === 'idle') reset(); };
+  $('showAll').onchange = draw;
+  cv.addEventListener('click', (e) => {
+    if (S.status !== 'idle') return;
+    const r = cv.getBoundingClientRect(), gx = (e.clientX - r.left - pad) / px, gy = C.ARENA - (e.clientY - r.top - pad) / px;
+    if (gx < 0.3 || gy < 0.3 || gx > C.ARENA - 0.3 || gy > C.ARENA - 0.3) return;
+    goal = { ...goal, x: +gx.toFixed(2), y: +gy.toFixed(2) }; reset();
+  });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => renderPanels());
+  new MutationObserver(() => renderPanels()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.addEventListener('resize', () => spark());
+
+  reset(); resize(); requestAnimationFrame(frame);
+})();
+</script>
+</body></html>

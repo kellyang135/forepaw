@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "RESERVED_NOT_YET_MATERIALIZED",
+  "notes": "Do not collect training data with these scenario IDs. Scene parameters must be materialized and hashed before final evaluation.",
+  "scenarios": [
+    {"id": "push-001", "behavior": "push"},
+    {"id": "push-002", "behavior": "push"},
+    {"id": "push-003", "behavior": "push"},
+    {"id": "push-004", "behavior": "push"},
+    {"id": "push-005", "behavior": "push"},
+    {"id": "push-006", "behavior": "push"},
+    {"id": "push-007", "behavior": "push"},
+    {"id": "push-008", "behavior": "push"},
+    {"id": "push-009", "behavior": "push"},
+    {"id": "push-010", "behavior": "push"},
+    {"id": "push-011", "behavior": "push"},
+    {"id": "push-012", "behavior": "push"},
+    {"id": "detour-001", "behavior": "detour"},
+    {"id": "detour-002", "behavior": "detour"},
+    {"id": "detour-003", "behavior": "detour"},
+    {"id": "detour-004", "behavior": "detour"},
+    {"id": "detour-005", "behavior": "detour"},
+    {"id": "detour-006", "behavior": "detour"},
+    {"id": "detour-007", "behavior": "detour"},
+    {"id": "detour-008", "behavior": "detour"},
+    {"id": "detour-009", "behavior": "detour"},
+    {"id": "detour-010", "behavior": "detour"},
+    {"id": "detour-011", "behavior": "detour"},
+    {"id": "detour-012", "behavior": "detour"}
+  ]
+}
+

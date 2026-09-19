@@ -1,0 +1,40 @@
+schema_version = 1
+status = "PROVISIONAL"
+freeze_before_final_evaluation = true
+
+# These values are engineering starting points, not achieved results. Revisit
+# them once during manual feasibility, record the rationale, then freeze them.
+[data]
+block_duration_target_s = 0.5
+block_duration_abs_error_max_s = 0.005
+missing_observation_fraction_max = 0.0
+nonmonotonic_timestamp_count_max = 0
+cross_split_scenario_count_max = 0
+interaction_fraction_min = 0.20
+interaction_fraction_max = 0.30
+
+[prediction]
+robot_position_median_error_3s_max_m = "SET_AT_G1_FROM_G0_MEASUREMENTS"
+box_position_median_error_3s_max_m = "SET_AT_G1_FROM_G0_MEASUREMENTS"
+robot_error_ratio_vs_persistence_3s_max = 0.80
+interaction_box_error_ratio_vs_simple_contact_max = 0.90
+matched_action_error_improvement_over_shuffled_min_fraction = 0.15
+useful_candidate_rank_fraction_min = 0.70
+
+[task]
+held_out_scenarios = 24
+scenarios_per_behavior = 12
+representative_repeats_min = 3
+success_fraction_each_behavior_min = 0.60
+fall_fraction_max = 0.10
+exclusions_must_be_reported = true
+
+[surprise]
+normal_operation_false_stop_fraction_max = 0.05
+detection_delay_blocks_max = 2
+threshold_calibration_split = "validation"
+
+[deployment]
+planning_latency_p50_max_s = 0.25
+planning_latency_p95_max_s = 0.50
+skill_path_parity_required = true
