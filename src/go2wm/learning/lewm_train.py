@@ -251,6 +251,123 @@ def validate(
     return result
 
 
+def multistep_losses(
+    model: torch.nn.Module,
+    pixels: torch.Tensor,
+    actions: torch.Tensor,
+    arch: lm.LeWMArchitecture,
+    horizon: int,
+) -> dict[str, torch.Tensor]:
+    """Recursive rollout loss against frozen visual targets for ``horizon`` blocks.
+
+    The representation is deliberately treated as fixed for P-010.  Prediction
+    step ``s`` consumes latent frames ``s:s+3`` and actions ``s:s+3``; action
+    ``s+2`` is therefore the candidate command that connects the last context
+    frame to the target frame.  This is the same alignment as deployment.
+    """
+
+    if horizon < 1:
+        raise ValueError("multistep horizon must be positive")
+    expected = arch.history_frames + horizon
+    if pixels.shape[1] != expected or actions.shape[1] != expected:
+        raise ValueError(
+            f"multistep clips need {expected} frames/actions, got "
+            f"{pixels.shape[1]}/{actions.shape[1]}"
+        )
+    with torch.no_grad():
+        embeddings = model.encode({"pixels": pixels})["emb"].detach()
+    context = embeddings[:, : arch.history_frames]
+    predictions: list[torch.Tensor] = []
+    for step in range(horizon):
+        action_window = actions[:, step : step + arch.history_frames]
+        action_embeddings = model.action_encoder(action_window)
+        predicted = model.predict(context, action_embeddings)[:, -1]
+        predictions.append(predicted)
+        context = torch.cat([context[:, 1:], predicted[:, None]], dim=1)
+    predicted_rollout = torch.stack(predictions, dim=1)
+    targets = embeddings[:, arch.history_frames :]
+    squared = (predicted_rollout - targets).pow(2)
+    horizon_losses = squared.mean(dim=(0, 2))
+    return {
+        "loss": horizon_losses.mean(),
+        "pred_loss": horizon_losses.mean(),
+        "sigreg_loss": horizon_losses.new_zeros(()),
+        "emb": embeddings,
+        "pred_emb": predicted_rollout,
+        "target_emb": targets,
+        "horizon_losses": horizon_losses,
+    }
+
+
+@torch.no_grad()
+def validate_multistep(
+    model: torch.nn.Module,
+    loader: DataLoader,
+    arch: lm.LeWMArchitecture,
+    device: torch.device,
+    *,
+    horizon: int,
+    max_batches: int | None,
+    seed: int,
+) -> dict[str, float]:
+    """Validate recursive rollout, persistence, and shuffled-action controls."""
+
+    model.eval()
+    generator = torch.Generator().manual_seed(seed)
+    totals = {
+        "pred_loss": 0.0,
+        "loss": 0.0,
+        "shuffled_pred_loss": 0.0,
+        "copy_last_loss": 0.0,
+    }
+    per_horizon = np.zeros(horizon, dtype=np.float64)
+    embeddings: list[torch.Tensor] = []
+    batches = 0
+    for batch in loader:
+        if max_batches is not None and batches >= max_batches:
+            break
+        pixels = lm.preprocess_pixels(batch["pixels"].to(device))
+        actions = batch["action"].to(device)
+        out = multistep_losses(model, pixels, actions, arch, horizon)
+        value = float(out["loss"])
+        totals["pred_loss"] += value
+        totals["loss"] += value
+        per_horizon += out["horizon_losses"].float().cpu().numpy()
+        copy_last = out["emb"][:, arch.history_frames - 1 : arch.history_frames].expand_as(
+            out["target_emb"]
+        )
+        totals["copy_last_loss"] += float((copy_last - out["target_emb"]).pow(2).mean())
+        if actions.shape[0] > 1:
+            order = torch.randperm(actions.shape[0], generator=generator)
+            if torch.equal(order, torch.arange(actions.shape[0])):
+                order = torch.roll(order, 1)
+            shuffled = multistep_losses(
+                model, pixels, actions[order.to(device)], arch, horizon
+            )
+            totals["shuffled_pred_loss"] += float(shuffled["loss"])
+        else:
+            totals["shuffled_pred_loss"] += float("nan")
+        embeddings.append(out["emb"][:, 0].float().cpu())
+        batches += 1
+    if batches == 0:
+        raise ValueError("validation loader produced no batches")
+    result = {key: value / batches for key, value in totals.items()}
+    for step, value in enumerate(per_horizon / batches, start=1):
+        result[f"horizon_{step}_loss"] = float(value)
+    emb = torch.cat(embeddings)
+    per_dim_std = emb.std(dim=0) if emb.shape[0] > 1 else torch.zeros(emb.shape[1])
+    result["emb_std_mean"] = float(per_dim_std.mean())
+    result["emb_std_min"] = float(per_dim_std.min())
+    result["action_gap"] = (
+        (result["shuffled_pred_loss"] - result["pred_loss"])
+        / result["shuffled_pred_loss"]
+        if result["shuffled_pred_loss"] > 0
+        else float("nan")
+    )
+    result["batches"] = batches
+    return result
+
+
 @torch.no_grad()
 def recalibrate_batchnorm(
     model: torch.nn.Module,
@@ -294,6 +411,45 @@ def recalibrate_batchnorm(
     for m, momentum in zip(norms, momenta, strict=True):
         m.momentum = momentum
     model.train(was_training)
+    return used
+
+
+@torch.no_grad()
+def recalibrate_multistep_batchnorm(
+    model: torch.nn.Module,
+    loader: DataLoader,
+    stats_batches: int,
+    device: torch.device,
+    arch: lm.LeWMArchitecture,
+    horizon: int,
+) -> int:
+    """Recompute only trainable predictor-projection BatchNorm statistics."""
+
+    norms = [
+        module
+        for module in model.pred_proj.modules()
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm)
+    ]
+    if not norms or stats_batches <= 0:
+        return 0
+    momenta = [module.momentum for module in norms]
+    for module in norms:
+        module.reset_running_stats()
+        module.momentum = None
+    model.eval()
+    for module in norms:
+        module.train()
+    used = 0
+    for batch in loader:
+        if used >= stats_batches:
+            break
+        pixels = lm.preprocess_pixels(batch["pixels"].to(device))
+        actions = batch["action"].to(device)
+        multistep_losses(model, pixels, actions, arch, horizon)
+        used += 1
+    for module, momentum in zip(norms, momenta, strict=True):
+        module.momentum = momentum
+    model.eval()
     return used
 
 
@@ -351,6 +507,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--device", default="auto", help="auto | mps | cuda | cpu")
     parser.add_argument("--seed", type=int, default=3072)
+    parser.add_argument(
+        "--init-run",
+        type=Path,
+        default=None,
+        help="initialize from a checksum-verified prior LeWM run",
+    )
+    parser.add_argument(
+        "--init-checkpoint",
+        default="best",
+        help="best, last, or epoch number from --init-run",
+    )
+    parser.add_argument(
+        "--multistep-horizon",
+        type=int,
+        default=1,
+        help="recursive rollout loss horizon; >1 is the P-010 frozen-representation repair",
+    )
     parser.add_argument(
         "--aux-state-weight",
         type=float,
@@ -414,11 +587,18 @@ def main(argv: list[str] | None = None) -> int:
         )
     mean, std = action_statistics(train_cache)
     stats = lm.ActionStats(mean, std)
+    if args.multistep_horizon < 1:
+        raise SystemExit("--multistep-horizon must be positive")
+    multistep_enabled = args.multistep_horizon > 1
+    if multistep_enabled and args.init_run is None:
+        raise SystemExit("--multistep-horizon > 1 requires --init-run")
     if args.aux_state_weight < 0:
         raise SystemExit("--aux-state-weight must be non-negative")
     if args.aux_hidden_dim < 1:
         raise SystemExit("--aux-hidden-dim must be positive")
     auxiliary_enabled = args.aux_state_weight > 0
+    if multistep_enabled and auxiliary_enabled:
+        raise SystemExit("multistep fine-tuning and the state auxiliary are separate experiments")
     auxiliary_stats = state_statistics(train_cache) if auxiliary_enabled else None
     if (
         auxiliary_enabled
@@ -428,8 +608,11 @@ def main(argv: list[str] | None = None) -> int:
     device = lm.pick_device(args.device)
     seed_everything(args.seed)
 
-    train_ds = ClipDataset(train_cache, arch.num_steps, stats, state_stats=auxiliary_stats)
-    val_ds = ClipDataset(val_cache, arch.num_steps, stats, state_stats=auxiliary_stats)
+    clip_steps = (
+        arch.history_frames + args.multistep_horizon if multistep_enabled else arch.num_steps
+    )
+    train_ds = ClipDataset(train_cache, clip_steps, stats, state_stats=auxiliary_stats)
+    val_ds = ClipDataset(val_cache, clip_steps, stats, state_stats=auxiliary_stats)
     generator = torch.Generator().manual_seed(args.seed)
     loader_kwargs: dict[str, Any] = {"num_workers": args.num_workers}
     if args.num_workers > 0:
@@ -458,7 +641,32 @@ def main(argv: list[str] | None = None) -> int:
             f"{args.batch_size} (lower --batch-size or collect more data)"
         )
 
-    model = lm.build_model(arch, src).to(device)
+    initialized: lm.TrainedLeWM | None = None
+    if args.init_run is not None:
+        initialized = lm.load_trained(
+            args.init_run,
+            checkpoint=args.init_checkpoint,
+            src=src,
+            device="cpu",
+        )
+        if initialized.arch != arch:
+            raise SystemExit("--init-run architecture does not match the fixed LeWM contract")
+        if initialized.action_stats != stats:
+            raise SystemExit("--init-run action normalization differs from the train cache")
+        prior_data = initialized.run_config.get("data", {})
+        for key, current in (
+            ("dataset_id", train_cache.manifest["dataset_id"]),
+            ("split_id", train_cache.manifest["split_id"]),
+        ):
+            if prior_data.get(key) != current:
+                raise SystemExit(f"--init-run {key} differs from the train cache")
+        if multistep_enabled and initialized.run_config.get("auxiliary", {}).get("enabled"):
+            raise SystemExit("P-010 must initialize from the plain run, not an auxiliary run")
+        if multistep_enabled and initialized.run_config.get("multistep", {}).get("enabled"):
+            raise SystemExit("P-010 does not permit chained multistep experiments")
+        model = initialized.model.to(device)
+    else:
+        model = lm.build_model(arch, src).to(device)
     sigreg = lm.build_sigreg(loss_cfg, src).to(device)
     auxiliary_head = (
         build_auxiliary_head(arch.embed_dim, train_cache.state.shape[1], args.aux_hidden_dim).to(
@@ -467,7 +675,13 @@ def main(argv: list[str] | None = None) -> int:
         if auxiliary_enabled
         else None
     )
-    parameters = list(model.parameters())
+    if multistep_enabled:
+        for parameter in model.parameters():
+            parameter.requires_grad_(False)
+        for component in (model.predictor, model.action_encoder, model.pred_proj):
+            for parameter in component.parameters():
+                parameter.requires_grad_(True)
+    parameters = [parameter for parameter in model.parameters() if parameter.requires_grad]
     if auxiliary_head is not None:
         parameters.extend(auxiliary_head.parameters())
     optimizer = torch.optim.AdamW(parameters, lr=args.lr, weight_decay=args.weight_decay)
@@ -513,6 +727,21 @@ def main(argv: list[str] | None = None) -> int:
             "state_scale": list(auxiliary_stats[1]) if auxiliary_stats is not None else [],
             "runtime_inputs_unchanged": True,
         },
+        "multistep": {
+            "enabled": multistep_enabled,
+            "horizon": args.multistep_horizon,
+            "objective": "mean recursive latent MSE over horizons" if multistep_enabled else None,
+            "representation_frozen": multistep_enabled,
+            "trainable_components": ["predictor", "action_encoder", "pred_proj"]
+            if multistep_enabled
+            else ["all"],
+            "init_run": str(args.init_run) if args.init_run is not None else None,
+            "init_checkpoint": args.init_checkpoint if args.init_run is not None else None,
+            "init_weights_sha256": initialized.weights_sha256
+            if initialized is not None
+            else None,
+            "runtime_inputs_unchanged": True,
+        },
         "data": {
             "dataset_id": train_cache.manifest["dataset_id"],
             "split_id": train_cache.manifest["split_id"],
@@ -538,6 +767,7 @@ def main(argv: list[str] | None = None) -> int:
         "overfit_batches": args.overfit_batches,
         "bn_recalibration_batches": args.bn_recalibration_batches,
         "parameters": lm.count_parameters(model),
+        "trainable_parameters": sum(parameter.numel() for parameter in parameters),
     }
 
     start_epoch = 1
@@ -558,6 +788,7 @@ def main(argv: list[str] | None = None) -> int:
             "loss",
             "action_stats",
             "auxiliary",
+            "multistep",
             "data",
             "lewm",
             "seed",
@@ -603,6 +834,13 @@ def main(argv: list[str] | None = None) -> int:
             f"hidden {args.aux_hidden_dim}, targets {train_cache.state.shape[1]}",
             flush=True,
         )
+    if multistep_enabled:
+        print(
+            f"P-010 multistep fine-tune: horizon {args.multistep_horizon}, "
+            f"frozen encoder/projector, {run_config['trainable_parameters'] / 1e6:.1f}M "
+            f"trainable params, init {initialized.weights_sha256[:12]}",
+            flush=True,
+        )
 
     overfit_batches: list[dict[str, torch.Tensor]] | None = None
     if args.overfit_batches:
@@ -616,6 +854,10 @@ def main(argv: list[str] | None = None) -> int:
     stop = False
     for epoch in range(start_epoch, args.epochs + 1):
         model.train()
+        if multistep_enabled:
+            # Frozen representation BatchNorm/dropout must stay in inference mode.
+            model.encoder.eval()
+            model.projector.eval()
         epoch_start = time.perf_counter()
         seen = 0
         running: dict[str, float] = {
@@ -631,7 +873,17 @@ def main(argv: list[str] | None = None) -> int:
                 break
             pixels = lm.preprocess_pixels(batch["pixels"].to(device, non_blocking=True))
             actions = batch["action"].to(device, non_blocking=True)
-            out_losses = lm.lejepa_losses(model, sigreg, pixels, actions, arch, loss_cfg)
+            out_losses = (
+                multistep_losses(
+                    model,
+                    pixels,
+                    actions,
+                    arch,
+                    args.multistep_horizon,
+                )
+                if multistep_enabled
+                else lm.lejepa_losses(model, sigreg, pixels, actions, arch, loss_cfg)
+            )
             aux_loss = (
                 auxiliary_state_loss(auxiliary_head, out_losses["emb"], batch, device)
                 if auxiliary_head is not None
@@ -692,24 +944,43 @@ def main(argv: list[str] | None = None) -> int:
                 )
         steps_this_epoch = max(1, round(seen / args.batch_size))
         train_means = {f"train_{k}": v / steps_this_epoch for k, v in running.items()}
-        bn_batches = recalibrate_batchnorm(
-            model,
-            train_loader if overfit_batches is None else overfit_batches,
-            args.bn_recalibration_batches,
-            device,
-        )
-        val = validate(
-            model,
-            sigreg,
-            val_loader,
-            arch,
-            loss_cfg,
-            device,
-            max_batches=args.val_max_batches,
-            seed=args.seed + epoch,
-            auxiliary_head=auxiliary_head,
-            auxiliary_weight=args.aux_state_weight,
-        )
+        if multistep_enabled:
+            bn_batches = recalibrate_multistep_batchnorm(
+                model,
+                train_loader if overfit_batches is None else overfit_batches,
+                args.bn_recalibration_batches,
+                device,
+                arch,
+                args.multistep_horizon,
+            )
+            val = validate_multistep(
+                model,
+                val_loader,
+                arch,
+                device,
+                horizon=args.multistep_horizon,
+                max_batches=args.val_max_batches,
+                seed=args.seed + epoch,
+            )
+        else:
+            bn_batches = recalibrate_batchnorm(
+                model,
+                train_loader if overfit_batches is None else overfit_batches,
+                args.bn_recalibration_batches,
+                device,
+            )
+            val = validate(
+                model,
+                sigreg,
+                val_loader,
+                arch,
+                loss_cfg,
+                device,
+                max_batches=args.val_max_batches,
+                seed=args.seed + epoch,
+                auxiliary_head=auxiliary_head,
+                auxiliary_weight=args.aux_state_weight,
+            )
         name = f"epoch_{epoch:03d}.pt"
         sha = lm.save_weights(checkpoints / name, model)
         index["checkpoints"][name] = {

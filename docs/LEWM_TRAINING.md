@@ -166,6 +166,32 @@ contain the RGB/action LeWM weights, not the head; poses and box labels remain
 forbidden runtime inputs. Changing the auxiliary weight or width requires a new
 run. Refit every readout and surprise threshold before evaluating the result.
 
+### Final G3 repair: short multistep predictor fine-tune
+
+Use this only after the plain run has been fully evaluated and the G3 failure
+has been retained. P-010 initializes from that checksum-verified plain
+checkpoint, freezes the encoder and projector, and trains only the predictor,
+action encoder, and predictor projector against six recursively generated
+latents. It cannot be chained and cannot be combined with the state auxiliary:
+
+```bash
+python -m go2wm.learning.lewm_train \
+    --train-cache $R/cache-train --val-cache $R/cache-validation \
+    --init-run $R/lewm-plain --init-checkpoint best \
+    --out $R/lewm-multistep --epochs 3 --batch-size 32 \
+    --multistep-horizon 6
+```
+
+Each nine-frame clip supplies three history frames and six future targets.
+Only training/validation caches are accepted. The run records the exact source
+checkpoint hash and refuses mismatched architecture, action normalization,
+dataset, or split IDs. Validation reports `horizon_1_loss` through
+`horizon_6_loss`, the six-step mean versus copy-last, and matched versus
+episode-shuffled actions. Evaluate the best checkpoint through the unchanged
+`lewm-eval` G2/G3 path. If action conditioning and one-step prediction still
+fail, stop model work and publish fallback F3; do not search more architectures
+or inspect test seeds.
+
 ## 6. Reading the training output
 
 Every epoch prints one line and appends to `metrics.jsonl` (numbers below are illustrative):

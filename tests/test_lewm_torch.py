@@ -202,6 +202,25 @@ def test_rollout_matches_upstream_jepa_rollout(trained) -> None:
     assert np.allclose(ours, theirs, atol=1e-4, rtol=1e-4)
 
 
+def test_multistep_training_alignment_matches_upstream_rollout(trained) -> None:
+    from go2wm.learning.lewm_train import multistep_losses
+
+    torch.manual_seed(17)
+    model = trained.model.eval()
+    arch = trained.arch
+    raw_pixels = torch.randint(0, 256, (2, 9, 3, 224, 224), dtype=torch.uint8)
+    pixels = lm.preprocess_pixels(raw_pixels)
+    actions = torch.randn(2, 9, 2)
+    actions[:, -1] = float("nan")
+    with torch.no_grad():
+        ours = multistep_losses(model, pixels, actions, arch, 6)["pred_emb"]
+        info = {"pixels": pixels[:, None, :3]}
+        upstream = model.rollout(info, actions[:, None, :8], history_size=3)
+        theirs = upstream["predicted_emb"][:, 0, 3:]
+    assert ours.shape == theirs.shape == (2, 6, 192)
+    assert torch.allclose(ours, theirs, atol=1e-5, rtol=1e-5)
+
+
 def test_batched_and_single_paths_agree(trained) -> None:
     world = LeWMWorldModel(trained)
     episode = episode_224("ep-batch", 12, DatasetSplit.TRAIN)
