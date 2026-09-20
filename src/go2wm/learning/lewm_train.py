@@ -216,7 +216,12 @@ def recalibrate_batchnorm(
     for m in norms:
         m.reset_running_stats()
         m.momentum = None  # cumulative moving average over the batches below
-    model.train()
+    # Only BatchNorm layers collect statistics; dropout stays off so the
+    # statistics match eval-mode planning (and MPS fused attention, which
+    # does not support dropout under no_grad, can run).
+    model.eval()
+    for m in norms:
+        m.train()
     used = 0
     for batch in loader:
         if used >= stats_batches:
