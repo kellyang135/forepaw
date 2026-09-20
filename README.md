@@ -71,6 +71,9 @@ Each published packet includes checksums or links to its machine-readable report
 
 ### Static evidence replay
 
+Live demo:
+[vercel-two-dun-11.vercel.app](https://vercel-two-dun-11.vercel.app)
+
 The fastest demo path has no build step:
 
 ```bash
