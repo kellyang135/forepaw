@@ -1,0 +1,204 @@
+{
+  "schema_version": "go2wm.go2-controller-handoff.v1",
+  "controller_id": "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat-iter10000",
+  "created_at_utc": "2026-09-20T04:54:48.475037Z",
+  "source": {
+    "repository": "https://github.com/unitreerobotics/unitree_rl_mjlab",
+    "revision": "1425b15f73bd4095f0df53709d7c389c3eb9e790",
+    "task": "Unitree-Go2-Flat"
+  },
+  "compatibility": {
+    "model_xml_sha256": "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912",
+    "joint_order": [
+      "FL_hip_joint",
+      "FL_thigh_joint",
+      "FL_calf_joint",
+      "FR_hip_joint",
+      "FR_thigh_joint",
+      "FR_calf_joint",
+      "RL_hip_joint",
+      "RL_thigh_joint",
+      "RL_calf_joint",
+      "RR_hip_joint",
+      "RR_thigh_joint",
+      "RR_calf_joint"
+    ],
+    "command_order": [
+      "forward_velocity_mps",
+      "lateral_velocity_mps",
+      "yaw_rate_rps"
+    ],
+    "action_semantics": "scaled_joint_position_target",
+    "onnx_data_mode": "self_contained",
+    "physics_dt_s": 0.005,
+    "controller_dt_s": 0.02,
+    "physics_substeps_per_control": 4
+  },
+  "validation": {
+    "training_smoke_passed": true,
+    "checkpoint_playback_passed": true,
+    "onnx_sim_playback_passed": true,
+    "onnx_export_present": true,
+    "checkpoint_playback_report_sha256": "1e5923417d2f3c55f90d85c3dc15926eff4700830d2f910abd499848c16cb067",
+    "adapter_playback_report_sha256": "2e976bbe3d4f3000f46ce303ffc6baef84c16d173a4276fe16ba12f1c7ff2d61",
+    "playback_comparison_sha256": "32f53a46f4ceaeb61de7e8fd27823fe01d4f27c6f8bfca31123bc8c67fc955ac",
+    "g0_signoff": false
+  },
+  "files": {
+    "policy_onnx": {
+      "path": "policy/policy.onnx",
+      "sha256": "c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc",
+      "bytes": 763834
+    },
+    "checkpoint": {
+      "path": "checkpoint/model_10000.pt",
+      "sha256": "2dc44f0c9cddf488c008d513cd7a41745c65aedac0e781491304f13f43fa5dc4",
+      "bytes": 4741959
+    },
+    "environment_config": {
+      "path": "config/env.yaml",
+      "sha256": "7baa7d38ea603bbb69e45fcc6a57cdb9c0fa2cbf1c483c6270fc8053a2cd82a0",
+      "bytes": 36465
+    },
+    "agent_config": {
+      "path": "config/agent.yaml",
+      "sha256": "5b41e40ac1764905c69fcb8e829eb42d9380fe8b205a2d03d665e5f6a73bc24a",
+      "bytes": 1042
+    },
+    "deployment_config": {
+      "path": "config/deploy.yaml",
+      "sha256": "09678aa4748c2fc152607a1d61f044f69569f165b52c589bc6f03c5cb098853b",
+      "bytes": 1503
+    },
+    "robot_xml": {
+      "path": "robot/go2.xml",
+      "sha256": "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912",
+      "bytes": 11233
+    },
+    "training_log": {
+      "path": "logs/training-full.log",
+      "sha256": "eeff5fb8213a9ddd860dff5ab666dc2573eccbbf7a3946b76ec08984197ae346",
+      "bytes": 21070907
+    },
+    "robot_mesh_00": {
+      "path": "robot/assets/base_0.obj",
+      "sha256": "8cdc53719002a5ee737d867904e534a6d6fa930b616bdcc1b3131e577d4e46c0",
+      "bytes": 1330465
+    },
+    "robot_mesh_01": {
+      "path": "robot/assets/base_1.obj",
+      "sha256": "39d2f4724ff64dd5a0640c308fd98902a2946660a8d033ec8dbf368fd5af0dd6",
+      "bytes": 811791
+    },
+    "robot_mesh_02": {
+      "path": "robot/assets/base_2.obj",
+      "sha256": "29cae463f95d678e4ede863c36c9b19b0d356b8340412add10670d70bdcc3095",
+      "bytes": 294090
+    },
+    "robot_mesh_03": {
+      "path": "robot/assets/base_3.obj",
+      "sha256": "f51ba43bf300e68957a0c1aa83eaf3e4926f4ac7e64a0d6c33ae5d21fcbcf5f6",
+      "bytes": 379093
+    },
+    "robot_mesh_04": {
+      "path": "robot/assets/base_4.obj",
+      "sha256": "49ddec0129546e5dd2075d5beacf7f207baa2860aeff7626818e64d2efbf3821",
+      "bytes": 7776234
+    },
+    "robot_mesh_05": {
+      "path": "robot/assets/calf_0.obj",
+      "sha256": "4a818cd563c5b7e2a271504442d05fd777d38cbaa028d4a10ad29c9f87bb355e",
+      "bytes": 877174
+    },
+    "robot_mesh_06": {
+      "path": "robot/assets/calf_1.obj",
+      "sha256": "51950c3a153ae3208592df86ea11c9d6756f8f645ebca5caf6910c61aeb03817",
+      "bytes": 326865
+    },
+    "robot_mesh_07": {
+      "path": "robot/assets/calf_mirror_0.obj",
+      "sha256": "6dc0406207a1c08a5953fd5962aca1a270fd06593d30d100205e05c1b32d4af2",
+      "bytes": 876538
+    },
+    "robot_mesh_08": {
+      "path": "robot/assets/calf_mirror_1.obj",
+      "sha256": "f84f5af90b914633165beb3a5493ee499169144c5797dcf04c6eb5842f74b31a",
+      "bytes": 327261
+    },
+    "robot_mesh_09": {
+      "path": "robot/assets/foot.obj",
+      "sha256": "df9e78a7c0110d02557439010f2a5f11f0ec4fd907b32704145dbd6aa7affc0b",
+      "bytes": 1144729
+    },
+    "robot_mesh_10": {
+      "path": "robot/assets/hip_0.obj",
+      "sha256": "cc29932ab4d251ce3f72389ec4c1f757e44eee138b87e772b648c2bc76b506cd",
+      "bytes": 2863864
+    },
+    "robot_mesh_11": {
+      "path": "robot/assets/hip_1.obj",
+      "sha256": "3fd5bd9b2ef6abe622c0739d3c67eaa1679b19b47132951972c4892a779ea7cf",
+      "bytes": 2767918
+    },
+    "robot_mesh_12": {
+      "path": "robot/assets/thigh_0.obj",
+      "sha256": "bb3edfe6a7b04f4f4dff1ce7b05d426ddce941e276cc6372fb542055893c71ec",
+      "bytes": 2841868
+    },
+    "robot_mesh_13": {
+      "path": "robot/assets/thigh_1.obj",
+      "sha256": "3a631822f9f7d2114b1b79dcdff5abf95103630abb7d91d1f3b8b18117132ed2",
+      "bytes": 1491320
+    },
+    "robot_mesh_14": {
+      "path": "robot/assets/thigh_mirror_0.obj",
+      "sha256": "07abaedce761f1dd48647384ac14ba1959276bc78d5a2a62051e8f1c6093933b",
+      "bytes": 2817674
+    },
+    "robot_mesh_15": {
+      "path": "robot/assets/thigh_mirror_1.obj",
+      "sha256": "db984a3e983eabbc9b38183427cca9ab0bb3bdb049f9eab030e06edda36579d6",
+      "bytes": 1482261
+    },
+    "checkpoint_playback_report": {
+      "path": "validation/checkpoint-playback-report.json",
+      "sha256": "1e5923417d2f3c55f90d85c3dc15926eff4700830d2f910abd499848c16cb067",
+      "bytes": 14235
+    },
+    "checkpoint_playback_trajectories": {
+      "path": "validation/checkpoint-playback-trajectories.jsonl",
+      "sha256": "589c5fa53231c173da6659ca7ea01708d1ffb1e0a6ec44cd86d2bde17fbade6d",
+      "bytes": 2119980
+    },
+    "adapter_playback_report": {
+      "path": "validation/adapter-playback-report.json",
+      "sha256": "2e976bbe3d4f3000f46ce303ffc6baef84c16d173a4276fe16ba12f1c7ff2d61",
+      "bytes": 10577
+    },
+    "playback_comparison": {
+      "path": "validation/playback-comparison.json",
+      "sha256": "32f53a46f4ceaeb61de7e8fd27823fe01d4f27c6f8bfca31123bc8c67fc955ac",
+      "bytes": 3511
+    },
+    "g0_draft_report": {
+      "path": "validation/g0-draft-report.json",
+      "sha256": "409003cab8c4a9266b2e5230588d912f00e907cad4066ba49b48ef3d3f864a22",
+      "bytes": 12544
+    },
+    "upstream_play_script": {
+      "path": "source/play.py",
+      "sha256": "63c5ad2f8bb39ea752e5f3669cecd409fc8ba6d85e93c35352fecc618e268ed6",
+      "bytes": 6956
+    },
+    "upstream_go2_env_config": {
+      "path": "source/go2-env_cfgs.py",
+      "sha256": "98defb863edccf071070074c31cb77790f83a40276e0589cf2982137c44cd293",
+      "bytes": 5739
+    }
+  },
+  "limitations": [
+    "The C++ unitree_mujoco deployment route was not exercised because it requires a gamepad to drive FSM transitions and commands.",
+    "The retained G0 trials are a draft-adapter feasibility run, not joint G0 sign-off.",
+    "dimOS transport and physical-robot deployment are not verified."
+  ]
+}

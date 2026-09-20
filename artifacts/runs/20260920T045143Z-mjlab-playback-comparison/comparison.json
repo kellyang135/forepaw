@@ -1,0 +1,94 @@
+{
+  "schema_version": "go2wm.mjlab-playback-comparison.v1",
+  "recorded_at_utc": "2026-09-20T04:51:48.915803Z",
+  "verdict": "PASS",
+  "criteria": {
+    "absolute_forward_delta_limit_mps": 0.08,
+    "absolute_yaw_delta_limit_rps": 0.12,
+    "source": "docs/MJLAB_PLAYBACK_ACCEPTANCE.md (predeclared)"
+  },
+  "inputs": {
+    "upstream_report": {
+      "path": "/Users/kellyyang/Documents/ChatGPT/hackmit/artifacts/runs/20260920T044245Z-mjlab-checkpoint-playback/report.json",
+      "sha256": "1e5923417d2f3c55f90d85c3dc15926eff4700830d2f910abd499848c16cb067"
+    },
+    "adapter_report": {
+      "path": "/Users/kellyyang/Documents/ChatGPT/hackmit/artifacts/runs/20260920T045030Z-mjlab-adapter-playback/report.json",
+      "sha256": "2e976bbe3d4f3000f46ce303ffc6baef84c16d173a4276fe16ba12f1c7ff2d61"
+    }
+  },
+  "checks": {
+    "forward_0.2: forward delta": true,
+    "forward_0.2: yaw delta": true,
+    "forward_0.4: forward delta": true,
+    "forward_0.4: yaw delta": true,
+    "forward_0.6: forward delta": true,
+    "forward_0.6: yaw delta": true,
+    "turn_-0.96: forward delta": true,
+    "turn_-0.96: yaw delta": true,
+    "turn_+0.96: forward delta": true,
+    "turn_+0.96: yaw delta": true
+  },
+  "cases": [
+    {
+      "name": "stand",
+      "gated": false,
+      "upstream_forward_mps": 0.00018395442904513892,
+      "adapter_forward_mps": -1.6564222932336887e-05,
+      "absolute_forward_delta_mps": 0.0002005186519774758,
+      "upstream_yaw_rate_rps": 1.375058440218445e-05,
+      "adapter_yaw_rate_rps": 1.5351850568606158e-05,
+      "absolute_yaw_delta_rps": 1.6012661664217077e-06
+    },
+    {
+      "name": "forward_0.2",
+      "gated": true,
+      "upstream_forward_mps": 0.16141012410322825,
+      "adapter_forward_mps": 0.16108803135928243,
+      "absolute_forward_delta_mps": 0.00032209274394581766,
+      "upstream_yaw_rate_rps": -0.017880444028802837,
+      "adapter_yaw_rate_rps": -0.01746099106143702,
+      "absolute_yaw_delta_rps": 0.00041945296736581664
+    },
+    {
+      "name": "forward_0.4",
+      "gated": true,
+      "upstream_forward_mps": 0.35787638465563454,
+      "adapter_forward_mps": 0.3572318751118893,
+      "absolute_forward_delta_mps": 0.0006445095437452308,
+      "upstream_yaw_rate_rps": -0.01726847298249292,
+      "adapter_yaw_rate_rps": -0.016478204282053117,
+      "absolute_yaw_delta_rps": 0.0007902687004398036
+    },
+    {
+      "name": "forward_0.6",
+      "gated": true,
+      "upstream_forward_mps": 0.544393140077591,
+      "adapter_forward_mps": 0.5440088189584382,
+      "absolute_forward_delta_mps": 0.000384321119152764,
+      "upstream_yaw_rate_rps": -0.014932629909211148,
+      "adapter_yaw_rate_rps": -0.015431409982430791,
+      "absolute_yaw_delta_rps": 0.0004987800732196429
+    },
+    {
+      "name": "turn_-0.96",
+      "gated": true,
+      "upstream_forward_mps": 0.02709667117955784,
+      "adapter_forward_mps": 0.03225297136920005,
+      "absolute_forward_delta_mps": 0.005156300189642211,
+      "upstream_yaw_rate_rps": -0.8937551430861155,
+      "adapter_yaw_rate_rps": -0.892097831789405,
+      "absolute_yaw_delta_rps": 0.0016573112967104286
+    },
+    {
+      "name": "turn_+0.96",
+      "gated": true,
+      "upstream_forward_mps": 0.02227068250455583,
+      "adapter_forward_mps": 0.02080553745185942,
+      "absolute_forward_delta_mps": 0.0014651450526964108,
+      "upstream_yaw_rate_rps": 0.9189845756689707,
+      "adapter_yaw_rate_rps": 0.9177018988689504,
+      "absolute_yaw_delta_rps": 0.0012826768000203659
+    }
+  ]
+}

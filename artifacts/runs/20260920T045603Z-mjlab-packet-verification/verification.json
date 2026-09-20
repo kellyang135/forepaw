@@ -1,0 +1,45 @@
+{
+  "schema_version": "go2wm.mjlab-packet-check.v0-draft",
+  "recorded_at_utc": "2026-09-20T04:56:24.726112Z",
+  "packet": "/Users/kellyyang/Documents/ChatGPT/hackmit/artifacts/runs/20260920T045422Z-go2-controller-handoff",
+  "verdict": "PASS",
+  "steps": {
+    "handoff": {
+      "status": "PASS",
+      "controller_id": "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat-iter10000",
+      "files": 30
+    },
+    "meshes": {
+      "status": "PASS",
+      "robot_xml": "robot/go2.xml",
+      "nmesh": 16,
+      "njnt": 13
+    },
+    "metadata": {
+      "status": "PASS",
+      "run_path": "dummy-svcy5p9n",
+      "observation_names": "base_ang_vel,projected_gravity,command,phase,joint_pos,joint_vel,actions"
+    },
+    "deploy": {
+      "status": "PASS",
+      "deploy_yaml": "config/deploy.yaml"
+    },
+    "inference": {
+      "status": "PASS",
+      "zero_obs_action_abs_max": 1.4872,
+      "random_obs_action_abs_max": 4.7883
+    },
+    "trials": {
+      "status": "PASS",
+      "checks": {
+        "free_motion_no_falls": true,
+        "light_box_displaced_4_of_5": true,
+        "resistant_box_holds_4_of_5": true,
+        "no_falls_while_pushing": true,
+        "camera_keeps_robot_and_boxes_in_frame": true,
+        "resets_settle": true
+      },
+      "report": "artifacts/runs/20260920T045603Z-mjlab-packet-verification/g0-trials/report.json"
+    }
+  }
+}

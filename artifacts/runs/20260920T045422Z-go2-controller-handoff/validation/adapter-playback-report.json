@@ -1,0 +1,345 @@
+{
+  "schema_version": "go2wm.mjlab-adapter-playback.v1",
+  "recorded_at_utc": "2026-09-20T04:50:51.487219Z",
+  "completion_state": "complete",
+  "verdict": "PASS",
+  "source": {
+    "revision": "8f4eee82aa683ca3d47fbfe13a52a0d177ca4667",
+    "tracked_dirty": true,
+    "relevant_files": {
+      "scripts/run_mjlab_adapter_playback.py": "a8dc17904f4d27cb61f7b391e5892d108d62be2f6ee5f30f610fb7663cd79be0",
+      "src/go2wm/sim/locomotion.py": "96272568acf528d04b94260ad718a51f5b733726f3800f5878cdc4ceac89175f",
+      "src/go2wm/sim/mujoco_go2.py": "a511aeda3203f66e8dd90bfcabfd1bca48c9cc39f1e4d546ef6bc037ba3cc759",
+      "src/go2wm/sim/task_scene.py": "d4c79cef25b7781442a336d22da0d66fad3cbf0c92a1894d2f5dca8ede95f447"
+    }
+  },
+  "controller": {
+    "policy_file": "policy.onnx",
+    "policy_sha256": "c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc",
+    "robot_xml_sha256": "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912",
+    "deploy_yaml_sha256": "09678aa4748c2fc152607a1d61f044f69569f165b52c589bc6f03c5cb098853b"
+  },
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.12.4",
+    "mujoco": "3.3.4",
+    "onnxruntime": "1.22.1"
+  },
+  "protocol": {
+    "seed": 42,
+    "repeats": 5,
+    "block_duration_s": 0.5,
+    "warmup_s": 1.0,
+    "lateral_velocity_mps": 0.0
+  },
+  "checks": {
+    "stand: five safe repeats": true,
+    "stand: response": true,
+    "forward_0.2: five safe repeats": true,
+    "forward_0.2: response": true,
+    "forward_0.4: five safe repeats": true,
+    "forward_0.4: response": true,
+    "forward_0.6: five safe repeats": true,
+    "forward_0.6: response": true,
+    "turn_-0.96: five safe repeats": true,
+    "turn_-0.96: response": true,
+    "turn_+0.96: five safe repeats": true,
+    "turn_+0.96: response": true
+  },
+  "cases": [
+    {
+      "name": "stand",
+      "forward_command_mps": 0.0,
+      "lateral_command_mps": 0.0,
+      "yaw_command_rps": 0.0,
+      "duration_s": 10.0,
+      "runs": [
+        {
+          "repeat": 0,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": -2.2294126659256475e-05,
+          "mean_yaw_rate_rps": 5.1347701073832676e-05,
+          "net_displacement_m": 0.0017398689511822962
+        },
+        {
+          "repeat": 1,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 1.1940593424850895e-06,
+          "mean_yaw_rate_rps": 1.5351850568606158e-05,
+          "net_displacement_m": 0.0023764688356479936
+        },
+        {
+          "repeat": 2,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": -2.1946523092723535e-05,
+          "mean_yaw_rate_rps": 2.7558356558296834e-05,
+          "net_displacement_m": 0.0020044029089405974
+        },
+        {
+          "repeat": 3,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": -1.6564222932336887e-05,
+          "mean_yaw_rate_rps": 1.1766838704444874e-05,
+          "net_displacement_m": 0.002077210011763905
+        },
+        {
+          "repeat": 4,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": -5.2426267079887085e-06,
+          "mean_yaw_rate_rps": -2.985914626317686e-06,
+          "net_displacement_m": 0.0023443941878344646
+        }
+      ]
+    },
+    {
+      "name": "forward_0.2",
+      "forward_command_mps": 0.2,
+      "lateral_command_mps": 0.0,
+      "yaw_command_rps": 0.0,
+      "duration_s": 4.0,
+      "runs": [
+        {
+          "repeat": 0,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.16108803135928243,
+          "mean_yaw_rate_rps": -0.017424249805248,
+          "net_displacement_m": 0.622372625447694
+        },
+        {
+          "repeat": 1,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.16102491438299507,
+          "mean_yaw_rate_rps": -0.01747024539643549,
+          "net_displacement_m": 0.6216740851247379
+        },
+        {
+          "repeat": 2,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.16115974397855717,
+          "mean_yaw_rate_rps": -0.017496863994205025,
+          "net_displacement_m": 0.6223245236264628
+        },
+        {
+          "repeat": 3,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.16086466610469943,
+          "mean_yaw_rate_rps": -0.017409499220153002,
+          "net_displacement_m": 0.623058234649033
+        },
+        {
+          "repeat": 4,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.1610927702728803,
+          "mean_yaw_rate_rps": -0.01746099106143702,
+          "net_displacement_m": 0.6223957650235504
+        }
+      ]
+    },
+    {
+      "name": "forward_0.4",
+      "forward_command_mps": 0.4,
+      "lateral_command_mps": 0.0,
+      "yaw_command_rps": 0.0,
+      "duration_s": 4.0,
+      "runs": [
+        {
+          "repeat": 0,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.3572833347289039,
+          "mean_yaw_rate_rps": -0.01617027824751031,
+          "net_displacement_m": 1.3768040787464086
+        },
+        {
+          "repeat": 1,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.35719334591732604,
+          "mean_yaw_rate_rps": -0.016478204282053117,
+          "net_displacement_m": 1.37519525308748
+        },
+        {
+          "repeat": 2,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.3572318751118893,
+          "mean_yaw_rate_rps": -0.01745862807388014,
+          "net_displacement_m": 1.3754421497170948
+        },
+        {
+          "repeat": 3,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.35694135726467313,
+          "mean_yaw_rate_rps": -0.015016707407522034,
+          "net_displacement_m": 1.376370695682379
+        },
+        {
+          "repeat": 4,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.35730223653328747,
+          "mean_yaw_rate_rps": -0.0165402934687869,
+          "net_displacement_m": 1.3765752357389245
+        }
+      ]
+    },
+    {
+      "name": "forward_0.6",
+      "forward_command_mps": 0.6,
+      "lateral_command_mps": 0.0,
+      "yaw_command_rps": 0.0,
+      "duration_s": 4.0,
+      "runs": [
+        {
+          "repeat": 0,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.5436031672376472,
+          "mean_yaw_rate_rps": -0.015451335222904206,
+          "net_displacement_m": 2.085024354689089
+        },
+        {
+          "repeat": 1,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.5436513340698141,
+          "mean_yaw_rate_rps": -0.015431409982430791,
+          "net_displacement_m": 2.0844885422226325
+        },
+        {
+          "repeat": 2,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.544281177043066,
+          "mean_yaw_rate_rps": -0.015299883878900467,
+          "net_displacement_m": 2.086493988962942
+        },
+        {
+          "repeat": 3,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.5440088189584382,
+          "mean_yaw_rate_rps": -0.015498600979630073,
+          "net_displacement_m": 2.085484050472788
+        },
+        {
+          "repeat": 4,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.5441734712886332,
+          "mean_yaw_rate_rps": -0.015226710963478496,
+          "net_displacement_m": 2.0863890744423386
+        }
+      ]
+    },
+    {
+      "name": "turn_-0.96",
+      "forward_command_mps": 0.0,
+      "lateral_command_mps": 0.0,
+      "yaw_command_rps": -0.96,
+      "duration_s": 4.0,
+      "runs": [
+        {
+          "repeat": 0,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.03324827659382041,
+          "mean_yaw_rate_rps": -0.892097831789405,
+          "net_displacement_m": 0.07699016122973748
+        },
+        {
+          "repeat": 1,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.03224576456862167,
+          "mean_yaw_rate_rps": -0.892758304728735,
+          "net_displacement_m": 0.07825412014493292
+        },
+        {
+          "repeat": 2,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.03225297136920005,
+          "mean_yaw_rate_rps": -0.8920638904149776,
+          "net_displacement_m": 0.07342008590602557
+        },
+        {
+          "repeat": 3,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.033236051732821716,
+          "mean_yaw_rate_rps": -0.8920920974882399,
+          "net_displacement_m": 0.07734673010148273
+        },
+        {
+          "repeat": 4,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.03223606938451248,
+          "mean_yaw_rate_rps": -0.8927877734236652,
+          "net_displacement_m": 0.0787668004422502
+        }
+      ]
+    },
+    {
+      "name": "turn_+0.96",
+      "forward_command_mps": 0.0,
+      "lateral_command_mps": 0.0,
+      "yaw_command_rps": 0.96,
+      "duration_s": 4.0,
+      "runs": [
+        {
+          "repeat": 0,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.02080553745185942,
+          "mean_yaw_rate_rps": 0.9178506149109648,
+          "net_displacement_m": 0.04623605845961137
+        },
+        {
+          "repeat": 1,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.02144020764731408,
+          "mean_yaw_rate_rps": 0.9172409991011466,
+          "net_displacement_m": 0.04600049592132497
+        },
+        {
+          "repeat": 2,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.020786002956983105,
+          "mean_yaw_rate_rps": 0.9177018988689504,
+          "net_displacement_m": 0.04717402347556318
+        },
+        {
+          "repeat": 3,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.0207619145354479,
+          "mean_yaw_rate_rps": 0.917869977251616,
+          "net_displacement_m": 0.04549759893028121
+        },
+        {
+          "repeat": 4,
+          "failed": false,
+          "failure": null,
+          "mean_forward_mps": 0.021403447814699054,
+          "mean_yaw_rate_rps": 0.9172688648180416,
+          "net_displacement_m": 0.05030641133313258
+        }
+      ]
+    }
+  ]
+}

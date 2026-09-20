@@ -41,7 +41,7 @@ the same picture):
 
 | Trial (5 repeats each, randomized start) | Falls | Measured |
 | --- | --- | --- |
-| Stand, zero command, 10 s | 0/5 | drift 4-7 cm |
+| Stand, zero command, 10 s | 0/5 | drift 4-7 cm; **yaw drift +0.13 rad/s, not measured at first (see section 8)** |
 | Forward 0.3 / 0.6 / 1.0 m/s | 0/15 | vx 0.17 / 0.54 / 0.93; yaw drift +0.09 to +0.14 rad/s |
 | Turn in place +-0.8 rad/s | 0/10 | wz +0.80 / -0.79 |
 | Arc 0.4 m/s with +-0.6 rad/s | 0/10 | vx 0.26-0.36, wz 0.58 / -0.64 |
@@ -107,3 +107,13 @@ for rendering on macOS.) The script refuses to run if either checksum differs.
    geometry and friction), the overhead 224 x 224 camera, and a front marker.
 3. Run the full G0 trials, reset repeats, and the 100-block throughput test.
 4. Produce the 20-block G1 packet for Person B to load and sign.
+
+## 8. Correction and follow-up (2026-09-19, later)
+
+The first probe measured only position drift at stand. On zero command the
+policy also turns in place at about +0.13 rad/s (0.75 rad in 6 s). The draft
+adapter in [SIM_ADAPTER_DRAFT.md](SIM_ADAPTER_DRAFT.md) removes this with an
+integral yaw-rate trim on the body gyro (an onboard sensor). With the trim,
+stand yaw rate is +0.003 to +0.007 rad/s and straight walking is within
++-0.005 rad/s. The adapter's G0-style trials pass all six feasibility checks:
+`artifacts/runs/20260919T231507Z-g0-trials-rl_sar-draft/`.
