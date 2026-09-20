@@ -1,0 +1,50 @@
+schema_version = 1
+status = "FROZEN_PENDING_COOWNER_ACK"
+accepted_by_project_lead_at_utc = "2026-09-20T06:20:00Z"
+coowner_acknowledged = false
+controller_id = "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat-iter10000"
+policy_sha256 = "c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc"
+robot_xml_sha256 = "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912"
+
+[action]
+min_forward_velocity_mps = 0.0
+max_forward_velocity_mps = 0.6
+max_abs_yaw_rate_rps = 1.2
+lateral_velocity_mps = 0.0
+
+[boxes]
+half_extent_m = 0.20
+friction = 1.0
+movable_class = "blue"
+movable_mass_kg = 1.0
+movable_min_displacement_m = 0.10
+resistant_class = "red"
+resistant_mass_kg = 20.0
+resistant_max_displacement_m = 0.05
+required_successes_of_five = 4
+# The project lead accepted this narrow margin after disclosure: the retained
+# draft run's worst resistant-box displacement was 0.0448 m.
+accepted_worst_observed_resistant_displacement_m = 0.0448
+
+[scene]
+arena_width_m = 4.0
+arena_height_m = 4.0
+camera_id = "overhead_v1"
+image_width_px = 224
+image_height_px = 224
+camera_fovy_deg = 60.0
+goal_center_margin_m = 0.45
+goal_radius_m = 0.25
+# The build spec requires a visible robot-front marker. The goal remains an
+# explicit runtime input; it is not rendered into the model observation.
+robot_front_marker_required = true
+goal_rendered_in_observation = false
+
+[reset]
+settle_min_s = 1.0
+settle_max_s = 5.0
+quiet_window_s = 0.5
+speed_tolerance_mps = 0.03
+yaw_rate_tolerance_rps = 0.05
+heading_tolerance_rad = 0.05
+required_settled_of_ten = 10

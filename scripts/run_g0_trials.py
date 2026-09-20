@@ -41,6 +41,7 @@ from typing import Any
 import numpy as np
 
 from go2wm.contracts import ActionCommand, ObjectState, Pose2D, ResetRequest
+from go2wm.sim.g0_acceptance import G0Acceptance, load_g0_acceptance
 from go2wm.sim.locomotion import (
     MJLAB_GO2_FLAT,
     RL_SAR_ROBOT_LAB_GO2,
@@ -108,7 +109,13 @@ def wrap(angle: float) -> float:
 
 
 class Trials:
-    def __init__(self, sim: MujocoGo2Simulator, output_dir: Path, seed: int) -> None:
+    def __init__(
+        self,
+        sim: MujocoGo2Simulator,
+        output_dir: Path,
+        seed: int,
+        acceptance: G0Acceptance | None = None,
+    ) -> None:
         self.sim = sim
         self.out = output_dir
         self.rng = np.random.default_rng(seed)
@@ -117,6 +124,19 @@ class Trials:
         self.camera_points_checked = 0
         self.camera_points_outside: list[dict[str, Any]] = []
         self.episode = 0
+        self.light_min_displacement_m = (
+            acceptance.movable_min_displacement_m
+            if acceptance is not None
+            else LIGHT_MIN_DISPLACEMENT_M
+        )
+        self.resistant_max_displacement_m = (
+            acceptance.resistant_max_displacement_m
+            if acceptance is not None
+            else RESISTANT_MAX_DISPLACEMENT_M
+        )
+        self.required_of_five = (
+            acceptance.required_successes_of_five if acceptance is not None else REQUIRED_OF_FIVE
+        )
 
     # ---------------------------------------------------------------- helpers
     def reset(self, pose: Pose2D, objects: tuple[ObjectState, ...] = ()) -> Any:
@@ -168,13 +188,41 @@ class Trials:
                     )
                 )
         for name, x, y, z in points:
-            u = scene.image_width_px / 2 + focal * x / (height - z)
-            v = scene.image_height_px / 2 - focal * y / (height - z)
-            self.camera_points_checked += 1
-            if not (2 <= u <= scene.image_width_px - 2 and 2 <= v <= scene.image_height_px - 2):
-                self.camera_points_outside.append(
-                    {"episode": self.episode, "point": name, "u": round(u, 1), "v": round(v, 1)}
-                )
+            self._check_camera_point(name, x, y, z, focal, height)
+
+    def check_goal_extrema(self, center_margin_m: float, radius_m: float) -> None:
+        """Check every edge of goal regions at all declared center extrema."""
+
+        scene = self.sim.config.scene
+        height = scene.camera_height_m
+        focal = (scene.image_height_px / 2) / math.tan(math.radians(scene.camera_fovy_deg) / 2)
+        x_limit = scene.arena_width_m / 2 - center_margin_m
+        y_limit = scene.arena_height_m / 2 - center_margin_m
+        for cx in (-x_limit, x_limit):
+            for cy in (-y_limit, y_limit):
+                for index, (dx, dy) in enumerate(
+                    ((radius_m, 0.0), (-radius_m, 0.0), (0.0, radius_m), (0.0, -radius_m))
+                ):
+                    self._check_camera_point(
+                        f"goal-extreme-{cx:+.2f}-{cy:+.2f}-{index}",
+                        cx + dx,
+                        cy + dy,
+                        0.01,
+                        focal,
+                        height,
+                    )
+
+    def _check_camera_point(
+        self, name: str, x: float, y: float, z: float, focal: float, height: float
+    ) -> None:
+        scene = self.sim.config.scene
+        u = scene.image_width_px / 2 + focal * x / (height - z)
+        v = scene.image_height_px / 2 - focal * y / (height - z)
+        self.camera_points_checked += 1
+        if not (2 <= u <= scene.image_width_px - 2 and 2 <= v <= scene.image_height_px - 2):
+            self.camera_points_outside.append(
+                {"episode": self.episode, "point": name, "u": round(u, 1), "v": round(v, 1)}
+            )
 
     def save_frame(self, name: str) -> str:
         observation = self.sim.observe()
@@ -304,14 +352,14 @@ class Trials:
             )
         displacements = [r["box_displacement_m"] for r in runs]
         if movable:
-            successes = sum(d >= LIGHT_MIN_DISPLACEMENT_M for d in displacements)
-            rule = f"displacement >= {LIGHT_MIN_DISPLACEMENT_M} m (PROPOSED)"
+            successes = sum(d >= self.light_min_displacement_m for d in displacements)
+            rule = f"displacement >= {self.light_min_displacement_m} m"
         else:
             successes = sum(
-                d <= RESISTANT_MAX_DISPLACEMENT_M and r["contact_samples"] > 0
+                d <= self.resistant_max_displacement_m and r["contact_samples"] > 0
                 for d, r in zip(displacements, runs, strict=True)
             )
-            rule = f"contacted and displacement <= {RESISTANT_MAX_DISPLACEMENT_M} m (PROPOSED)"
+            rule = f"contacted and displacement <= {self.resistant_max_displacement_m} m"
         return {
             "trial": f"push {appearance}",
             "mass_kg": self.sim.config.scene.box_classes[appearance].mass_kg,
@@ -367,11 +415,61 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--push-speed", type=float, default=0.5)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--acceptance",
+        type=Path,
+        help="frozen G0 acceptance TOML; omission keeps the run explicitly draft",
+    )
     return parser.parse_args()
+
+
+def validate_frozen_configuration(
+    acceptance: G0Acceptance,
+    config: MujocoGo2Config,
+    controller_id: str,
+    policy: Path,
+    robot_xml: Path,
+) -> None:
+    """Fail before simulation if the requested run differs from the frozen G0 values."""
+
+    scene = config.scene
+    actual = {
+        "min_forward_mps": config.min_forward_velocity_mps,
+        "max_forward_mps": config.max_forward_velocity_mps,
+        "max_abs_yaw_rps": config.max_abs_yaw_rate_rps,
+        "movable_mass_kg": scene.box_classes["blue"].mass_kg,
+        "resistant_mass_kg": scene.box_classes["red"].mass_kg,
+        "box_half_extent_m": scene.box_half_extent_m,
+        "box_friction": scene.box_friction,
+        "arena_width_m": scene.arena_width_m,
+        "arena_height_m": scene.arena_height_m,
+        "image_width_px": scene.image_width_px,
+        "image_height_px": scene.image_height_px,
+        "camera_fovy_deg": scene.camera_fovy_deg,
+        "settle_min_s": config.settle_min_s,
+        "settle_max_s": config.settle_max_s,
+        "settle_window_s": config.settle_window_s,
+        "settle_speed_tolerance_mps": config.settle_speed_tolerance_mps,
+        "settle_yaw_rate_tolerance_rps": config.settle_yaw_rate_tolerance_rps,
+        "settle_heading_tolerance_rad": config.settle_heading_tolerance_rad,
+    }
+    for name, value in actual.items():
+        expected = getattr(acceptance, name)
+        if not math.isclose(float(value), float(expected), abs_tol=1e-12):
+            raise ValueError(f"frozen {name}={expected} does not match runtime {value}")
+    if controller_id != acceptance.controller_id:
+        raise ValueError("controller id does not match frozen G0 acceptance")
+    if scene.camera_id != acceptance.camera_id:
+        raise ValueError("frozen camera_id does not match runtime")
+    if sha256_file(policy) != acceptance.policy_sha256:
+        raise ValueError("policy does not match frozen G0 acceptance")
+    if sha256_file(robot_xml) != acceptance.robot_xml_sha256:
+        raise ValueError("robot XML does not match frozen G0 acceptance")
 
 
 def main() -> int:
     args = parse_args()
+    acceptance = load_g0_acceptance(args.acceptance) if args.acceptance is not None else None
     if args.output_dir.exists():
         raise FileExistsError(f"refusing to overwrite {args.output_dir}")
     if args.controller == "rl_sar":
@@ -392,8 +490,12 @@ def main() -> int:
     import mujoco
 
     config = MujocoGo2Config()
+    if acceptance is not None:
+        validate_frozen_configuration(
+            acceptance, config, spec.controller_id, args.policy, robot_xml
+        )
     sim = MujocoGo2Simulator(spec, policy, robot_xml, config)
-    trials = Trials(sim, args.output_dir, args.seed)
+    trials = Trials(sim, args.output_dir, args.seed, acceptance)
     started = time.perf_counter()
     max_yaw = config.max_abs_yaw_rate_rps
     free = [
@@ -410,27 +512,55 @@ def main() -> int:
         trials.pushes(heavy_class, False, args.push_speed),
     ]
     resets = trials.reset_repeatability()
+    if acceptance is not None:
+        trials.check_goal_extrema(
+            acceptance.goal_center_margin_m,
+            acceptance.goal_radius_m,
+        )
     trials.save_frame("reset_example")
     wall_s = time.perf_counter() - started
 
     checks = {
         "free_motion_no_falls": all(t["falls"] == 0 for t in free),
-        "light_box_displaced_4_of_5": pushes[0]["successes"] >= REQUIRED_OF_FIVE,
-        "resistant_box_holds_4_of_5": pushes[1]["successes"] >= REQUIRED_OF_FIVE,
+        "light_box_displaced_4_of_5": pushes[0]["successes"] >= trials.required_of_five,
+        "resistant_box_holds_4_of_5": pushes[1]["successes"] >= trials.required_of_five,
         "no_falls_while_pushing": all(p["falls"] == 0 for p in pushes),
         "camera_keeps_robot_and_boxes_in_frame": not trials.camera_points_outside,
-        "resets_settle": resets["settled"].split("/")[0] == resets["settled"].split("/")[1],
+        "resets_settle": int(resets["settled"].split("/")[0])
+        >= (acceptance.required_settled_of_ten if acceptance is not None else 10),
     }
     report = {
-        "schema_version": "go2wm.g0-trials.v0-draft",
+        "schema_version": "go2wm.g0-trials.v1" if acceptance else "go2wm.g0-trials.v0-draft",
         "run_id": args.output_dir.name,
         "recorded_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "status": "FEASIBILITY_ALL_CHECKS_PASS"
-        if all(checks.values())
-        else "FEASIBILITY_CHECKS_FAILED",
-        "scope": "draft adapter and task scene; not a G0 sign-off until SIM reviews and reruns",
+        "status": (
+            "FORMAL_TRIALS_PASS_PENDING_COOWNER_SIGNOFF"
+            if acceptance and all(checks.values()) and not acceptance.coowner_acknowledged
+            else "FORMAL_G0_PASS"
+            if acceptance and all(checks.values())
+            else "FEASIBILITY_ALL_CHECKS_PASS"
+            if all(checks.values())
+            else "CHECKS_FAILED"
+        ),
+        "scope": (
+            "formal G0 measurements; co-owner sign-off still required"
+            if acceptance and not acceptance.coowner_acknowledged
+            else "formal G0"
+            if acceptance
+            else "draft adapter and task scene; not a G0 sign-off until SIM reviews and reruns"
+        ),
         "source": source_snapshot(),
         "seed": args.seed,
+        "acceptance": (
+            {
+                "path": str(args.acceptance),
+                "sha256": sha256_file(args.acceptance),
+                "status": acceptance.status,
+                "coowner_acknowledged": acceptance.coowner_acknowledged,
+            }
+            if acceptance is not None
+            else None
+        ),
         "checks": checks,
         "controller": {
             "id": spec.controller_id,

@@ -1,9 +1,9 @@
 schema_version = 1
-status = "MUST_PIN_BEFORE_INSTALL"
+status = "PINNED_WITH_UNVERIFIED_RUNTIME"
 
 [lewm]
 repository = "https://github.com/lucas-maes/le-wm"
-commit = "UNPINNED"
+commit = "8edfeb336732b5f3ce7b8b210d0ba370a09e2cac"
 license = "MIT"
 verified_locally = false
 notes = "Upstream README currently specifies Python 3.10, HDF5 data, Hydra training, and stable-worldmodel[train,env]."
@@ -27,5 +27,5 @@ commit = "1425b15f73bd4095f0df53709d7c389c3eb9e790"
 license = "Apache-2.0"
 task = "Unitree-Go2-Flat"
 model_xml_sha256 = "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912"
-verified_locally = false
-notes = "Source-audited recovery route. Training, ONNX export, playback, and project adapter remain unverified. Its bundled Go2 XML and position-actuator semantics differ from the already rendered stock Menagerie model."
+verified_locally = true
+notes = "Pinned source, CUDA training/export, checkpoint playback, ONNX project-adapter playback, cross-simulator comparison, and strict handoff verification passed in retained 20260920 artifacts. This does not verify dimOS or world-model task performance."

@@ -1,6 +1,8 @@
 """Collect one data wave with the scripted, boundary-aware collection policy.
 
-    python scripts/collect_wave.py --backend mujoco --policy /tmp/robot_lab_policy.pt \
+    python scripts/collect_wave.py --backend mujoco --controller mjlab \
+        --policy artifacts/controller/policy.onnx --robot-xml artifacts/controller/go2.xml \
+        --deploy-yaml artifacts/controller/deploy.yaml \
         --splits artifacts/splits.json --seeds 1-400 --out data/wave1
 
     python scripts/collect_wave.py --backend fake --splits runs/x/splits.json \
@@ -50,6 +52,41 @@ def parse_seeds(text: str) -> list[int]:
     return seeds
 
 
+def resolve_mujoco_controller(args: argparse.Namespace):
+    """Load the explicitly selected, checksum-validated Go2 controller route."""
+
+    from go2wm.sim.locomotion import (
+        MJLAB_GO2_FLAT,
+        RL_SAR_ROBOT_LAB_GO2,
+        OnnxPolicy,
+        check_mjlab_deploy_yaml,
+        check_mjlab_onnx_metadata,
+        load_rl_sar_policy,
+    )
+
+    if args.policy is None:
+        raise SystemExit("--policy is required for --backend mujoco")
+    if args.controller == "mjlab":
+        if args.robot_xml is None:
+            raise SystemExit("--robot-xml is required for --controller mjlab")
+        check_mjlab_onnx_metadata(args.policy, MJLAB_GO2_FLAT)
+        if args.deploy_yaml is not None:
+            check_mjlab_deploy_yaml(args.deploy_yaml, MJLAB_GO2_FLAT)
+        return (
+            MJLAB_GO2_FLAT,
+            OnnxPolicy(args.policy, MJLAB_GO2_FLAT.observation_size),
+            args.robot_xml,
+        )
+
+    from go2wm.sim.task_scene import menagerie_scene_xml
+
+    return (
+        RL_SAR_ROBOT_LAB_GO2,
+        load_rl_sar_policy(args.policy),
+        menagerie_scene_xml(args.menagerie_cache),
+    )
+
+
 def build_backend(args: argparse.Namespace):
     if args.backend == "fake":
         from go2wm.sim import DeterministicFakeSimulator, FakeSimulatorConfig
@@ -62,17 +99,14 @@ def build_backend(args: argparse.Namespace):
         )
         return sim, arena, CommandBounds(), "fake-backend"
 
-    from go2wm.sim.locomotion import RL_SAR_ROBOT_LAB_GO2, load_rl_sar_policy
     from go2wm.sim.mujoco_go2 import MujocoGo2Config, MujocoGo2Simulator
-    from go2wm.sim.task_scene import menagerie_scene_xml
 
-    if args.policy is None:
-        raise SystemExit("--policy is required for --backend mujoco")
+    spec, policy, robot_xml = resolve_mujoco_controller(args)
     config = MujocoGo2Config()
     sim = MujocoGo2Simulator(
-        RL_SAR_ROBOT_LAB_GO2,
-        load_rl_sar_policy(args.policy),
-        menagerie_scene_xml(args.menagerie_cache),
+        spec,
+        policy,
+        robot_xml,
         config,
     )
     scene = config.scene
@@ -96,7 +130,10 @@ def main() -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--backend", choices=("fake", "mujoco"), required=True)
-    parser.add_argument("--policy", type=Path, help="rl_sar robot_lab policy.pt (mujoco backend)")
+    parser.add_argument("--controller", choices=("mjlab", "rl_sar"), default="mjlab")
+    parser.add_argument("--policy", type=Path, help="policy.onnx (MjLab) or policy.pt (rl_sar)")
+    parser.add_argument("--robot-xml", type=Path, help="MjLab go2.xml with its assets directory")
+    parser.add_argument("--deploy-yaml", type=Path, help="MjLab deploy.yaml to validate")
     parser.add_argument("--menagerie-cache", type=Path, default=Path("/tmp/go2wm-menagerie-cache"))
     parser.add_argument(
         "--splits", type=Path, required=True, help="frozen split manifest (make-splits)"
