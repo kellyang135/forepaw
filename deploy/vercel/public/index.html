@@ -66,32 +66,19 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
 .frame { display: grid; gap: 5px; }
 .frame canvas { width: 100%; aspect-ratio: 1; border-radius: 3px; background: #ddd; display: block; box-shadow: 0 0 0 1px var(--hair-2); }
 .frame span { font-family: var(--mono); font-size: 10.5px; color: var(--faint); text-align: center; }
-.acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--faint); }
-.acts div { text-align: center; }
-.acts b { color: var(--muted); font-weight: 400; }
-.lat { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 6px 10px; align-items: center; font-size: 12px; color: var(--muted); }
-.lat canvas { width: 100%; height: 10px; image-rendering: pixelated; border-radius: 2px; display: block; }
-.lat-foot { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--faint); margin-top: 10px; }
-.lat-foot span:last-child { font-family: var(--mono); color: var(--muted); }
-
-.cands { display: grid; gap: 1px; font-family: var(--mono); font-size: 11.5px; }
-.cand { display: grid; grid-template-columns: 20px minmax(0, 1fr) 44px; gap: 8px; align-items: center; padding: 5px 6px; border-radius: 6px; transition: background 300ms var(--ease); }
+.cands { display: grid; gap: 3px; }
+.cand { display: grid; grid-template-columns: 28px minmax(0, 1fr) max-content; gap: 8px; align-items: center; padding: 7px 8px; border-radius: 6px; transition: background 300ms var(--ease); }
 .cand.sel { background: var(--accent-soft); }
-.cand.sel .nm span, .cand.sel .tot { color: var(--accent); }
-.cand .rk { color: var(--faint); font-size: 10.5px; }
-.cand .nm { display: grid; gap: 4px; min-width: 0; }
+.cand.sel .nm span, .cand.sel .pick { color: var(--accent); }
+.cand .rk { color: var(--faint); font-family: var(--mono); font-size: 10.5px; }
+.cand .nm { min-width: 0; }
 .cand .nm span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
-.cand .bar { display: flex; gap: 1px; height: 2px; }
-.cand .bar span { border-radius: 1px; }
-.cand .tot { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
-.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--faint); margin-top: 10px; }
-.legend i { display: inline-block; width: 10px; height: 2px; margin-right: 5px; vertical-align: 3px; border-radius: 1px; }
+.cand .pick { color: var(--faint); font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
 
-.plan-id { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--accent); word-break: break-all; margin-bottom: 10px; }
+.plan-id { font-size: 18px; font-weight: 500; color: var(--accent); margin-bottom: 10px; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 14px; font-size: 12px; margin: 0; }
 .kv dt { color: var(--faint); }
-.kv dd { margin: 0; font-family: var(--mono); font-size: 11.5px; color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.lock.off { color: var(--faint); }
+.kv dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
 
 .bottom { grid-column: 1 / 4; grid-row: 3; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px; align-items: end; }
 .pipe { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
@@ -124,14 +111,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
 .kbd { font-family: var(--mono); font-size: 10.5px; color: var(--faint); border: 1px solid var(--hair-2); border-radius: 4px; padding: 0 5px; }
 button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.sur-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.big { font-family: var(--mono); font-size: 28px; font-weight: 500; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; margin-top: 2px; }
-.big small { font-size: 11.5px; letter-spacing: 0; color: var(--faint); }
-.state { font-family: var(--mono); font-size: 11.5px; color: var(--faint); display: inline-flex; align-items: center; gap: 6px; }
+.check-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.check-copy { color: var(--muted); margin: 10px 0 0; max-width: 46ch; }
+.state { font-size: 12px; font-weight: 500; color: var(--faint); display: inline-flex; align-items: center; gap: 6px; }
 .state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .state.ok { color: var(--accent); }
 .state.alarm { color: var(--alarm); }
-svg#spark { width: 100%; height: 72px; display: block; margin-top: 6px; }
 
 .banner { position: absolute; left: 50%; top: 20%; transform: translateX(-50%); display: grid; gap: 4px; text-align: center; padding: 14px 24px; border-radius: 10px; background: rgba(255, 255, 255, 0.94); border: 1px solid var(--hair-2); box-shadow: var(--inner); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); max-width: calc(100% - 32px); pointer-events: none; animation: rise 600ms var(--ease) both; }
 .banner strong { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
@@ -140,7 +125,7 @@ svg#spark { width: 100%; height: 72px; display: block; margin-top: 6px; }
 .banner.goal strong { color: var(--accent); }
 @keyframes rise { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
-.labels { position: absolute; inset: 0; pointer-events: none; }
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .lbl { position: absolute; font-family: var(--sans); white-space: nowrap; color: var(--text); --halo: 0 0 2px var(--bg), 0 0 6px var(--bg), 0 0 10px var(--bg); text-shadow: var(--halo); }
 .lbl[hidden] { display: none; }
 .lbl.plain { transform: translate(-50%, -50%); font-size: 10.5px; color: var(--muted); }
@@ -192,15 +177,11 @@ svg#spark { width: 100%; height: 72px; display: block; margin-top: 6px; }
 
   <div class="hud">
     <header class="title">
-      <h1>Forepaw evidence replay <span class="tag-level" id="levelTag">–</span></h1>
+      <h1>Forepaw replay <span class="tag-level" id="levelTag">–</span></h1>
       <div class="meta">
-        <span>run <b id="runId">–</b></span>
-        <span>bundle <b id="bundleId">–</b></span>
-        <span>t <b id="tT">0.0 s</b></span>
-        <span>block <b id="tB">00</b></span>
-        <span class="ph-live">phase <b id="tP">ready</b></span>
-        <span id="tPhys">physics <b>paused</b></span>
-        <span>arena <b id="arenaTag">–</b></span>
+        <span>time <b id="tT">0.0 s</b></span>
+        <span>move <b id="tB">01</b></span>
+        <span class="ph-live">stage <b id="tP">Ready</b></span>
       </div>
     </header>
 
@@ -212,59 +193,45 @@ svg#spark { width: 100%; height: 72px; display: block; margin-top: 6px; }
 
     <div class="left">
       <section class="panel">
-        <h2 class="ph">Model input <span class="src" id="camTag">–</span></h2>
+        <h2 class="ph">What the robot saw <span class="src" id="camTag">–</span></h2>
         <div class="frames">
-          <div class="frame"><canvas id="f0" width="32" height="32"></canvas><span>t − 1.0 s</span></div>
-          <div class="frame"><canvas id="f1" width="32" height="32"></canvas><span>t − 0.5 s</span></div>
+          <div class="frame"><canvas id="f0" width="32" height="32"></canvas><span>1.0 s ago</span></div>
+          <div class="frame"><canvas id="f1" width="32" height="32"></canvas><span>0.5 s ago</span></div>
           <div class="frame"><canvas id="f2" width="32" height="32"></canvas><span>now</span></div>
         </div>
-        <div class="acts"><div id="a0">a₋₂ <b>–</b></div><div id="a1">a₋₁ <b>–</b></div></div>
-      </section>
-      <section class="panel">
-        <h2 class="ph">Latent check <span class="src" id="latTag">–</span></h2>
-        <div class="lat">
-          <span>predicted</span><canvas id="zPred" width="192" height="1"></canvas>
-          <span>observed</span><canvas id="zObs" width="192" height="1"></canvas>
-          <span>difference</span><canvas id="zDiff" width="192" height="1"></canvas>
-        </div>
-        <div class="lat-foot"><span>Locked next-step latent vs encoded observation</span><span id="zRmse">rmse –</span></div>
       </section>
     </div>
 
     <div class="right">
       <section class="panel">
-        <h2 class="ph">Locked plan <span class="src">PlanResult</span></h2>
+        <h2 class="ph">Chosen move <span class="src">next 0.5 seconds</span></h2>
         <div class="plan-id" id="pId">–</div>
         <dl class="kv">
-          <dt>First action</dt><dd id="pAct">–</dd>
-          <dt>Reason</dt><dd id="pReason">–</dd>
-          <dt>Locked</dt><dd><span class="lock off" id="pLock">–</span></dd>
-          <dt>Planning</dt><dd id="pLat">–</dd>
+          <dt>Move</dt><dd id="pAct">–</dd>
+          <dt>Why</dt><dd id="pReason">–</dd>
+          <dt>Then</dt><dd>Observe the result and choose again</dd>
         </dl>
       </section>
       <section class="panel">
-        <h2 class="ph">Ranked rollouts <span class="src">top 6</span></h2>
+        <h2 class="ph">Moves considered <span class="src">best 3 of 64</span></h2>
         <div class="cands" id="cands"></div>
-        <div class="legend" id="legend"></div>
       </section>
     </div>
 
     <div class="bottom">
       <section class="panel">
         <div class="pipe" id="pipe">
-          <div data-ph="imagine"><span class="track"><span class="fill"></span></span>Imagine<small>all candidates</small></div>
-          <div data-ph="score"><span class="track"><span class="fill"></span></span>Score<small>rank costs</small></div>
-          <div data-ph="lock"><span class="track"><span class="fill"></span></span>Lock<small>fsynced before motion</small></div>
-          <div data-ph="execute"><span class="track"><span class="fill"></span></span>Execute<small>block 0 only</small></div>
-          <div data-ph="compare"><span class="track"><span class="fill"></span></span>Compare<small>surprise check</small></div>
+          <div data-ph="imagine"><span class="track"><span class="fill"></span></span>Predict<small>64 possible moves</small></div>
+          <div data-ph="score"><span class="track"><span class="fill"></span></span>Compare<small>best option first</small></div>
+          <div data-ph="lock"><span class="track"><span class="fill"></span></span>Choose<small>one safe move</small></div>
+          <div data-ph="execute"><span class="track"><span class="fill"></span></span>Move<small>for 0.5 seconds</small></div>
+          <div data-ph="compare"><span class="track"><span class="fill"></span></span>Check<small>prediction vs. reality</small></div>
         </div>
         <div class="ctrl">
           <button class="btn primary" id="runBtn">Play</button>
           <button class="btn" id="stepBtn">Step</button>
           <button class="btn quiet" id="resetBtn">Restart</button>
           <label class="opt" for="runSel">Run <select id="runSel"></select></label>
-          <label class="opt" for="follow"><input type="checkbox" id="follow" disabled> Recorded evidence</label>
-          <span class="opt" id="liveTag">–</span>
         </div>
         <div class="opts">
           <label class="opt" for="speed">Speed <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
@@ -272,12 +239,11 @@ svg#spark { width: 100%; height: 72px; display: block; margin-top: 6px; }
         </div>
       </section>
       <section class="panel">
-        <div class="sur-top">
-          <h2 class="ph" style="margin:0">Surprise <span class="src">SurpriseEvent</span></h2>
-          <span class="state" id="sPill">unarmed</span>
+        <div class="check-top">
+          <h2 class="ph" style="margin:0">Prediction vs. reality</h2>
+          <span class="state" id="sPill" role="status" aria-live="polite">Waiting</span>
         </div>
-        <div class="big" id="sNow">–</div>
-        <svg id="spark" role="img" aria-label="Latent discrepancy per block against the calibrated stop threshold"></svg>
+        <p class="check-copy" id="sCopy">The result of each move is checked before Forepaw plans again.</p>
       </section>
     </div>
   </div>

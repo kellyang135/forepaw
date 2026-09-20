@@ -40,7 +40,6 @@ const COL = {
   pred: 0x0f7b53, ok: 0x0f7b53, alarm: 0xd12f35, trail: 0x18181b, future: 0x27272a, ink: 0x18181b,
 };
 const LIGHT_LOOK = new Set(HINTS.light_appearances || ['blue']);
-const PARTS = [['goal', 'goal distance', '#3F3F46'], ['risk', 'failure risk', '#D12F35'], ['stall', 'stall', '#8A8A93'], ['effort', 'effort', '#B4B4BB'], ['change', 'command change', '#D4D4D8']];
 const hex = (n) => '#' + n.toString(16).padStart(6, '0');
 
 // sim (x, y) metres -> three (x, 0, z); sim +y points to -z, yaw maps to rotation.y
@@ -413,22 +412,7 @@ function segs(pairs, color, opacity, h = 0.004) {
   gc.children.forEach((c) => (c.position.y = 0.005)); gc.traverse((o) => o.layers.set(OVERLAY)); goalG.add(gc);
 }
 
-// ---------------------------------------------------------------- latents and frames
-function paintZ(id, z, scale, diff) {
-  const c = $(id), n = z.length;
-  if (c.width !== n) c.width = n;
-  const g = c.getContext('2d'), img = g.createImageData(n, 1);
-  const mix = (col, t) => [228 + (col[0] - 228) * t, 228 + (col[1] - 228) * t, 231 + (col[2] - 231) * t];
-  z.forEach((raw, i) => {
-    const v = raw == null ? 0 : raw / (scale || 1);
-    let rgb;
-    if (diff) rgb = mix([209, 47, 53], Math.min(1, Math.abs(v)));
-    else if (v >= 0) rgb = mix([15, 123, 83], Math.min(1, v));
-    else rgb = mix([24, 24, 27], Math.min(1, -v));
-    img.data.set([...rgb, 255], i * 4);
-  });
-  g.putImageData(img, 0, 0);
-}
+// ---------------------------------------------------------------- frames
 function drawFrame(i, png) {
   const c = $('f' + i);
   if (!png) { c.getContext('2d').clearRect(0, 0, c.width, c.height); return; }
@@ -471,8 +455,6 @@ function reset() {
   clearWhiskers(); clearFutures(); setTrail(); alarmRing.visible = false; ghost.g.visible = false; boxGhosts.forEach((g) => (g.visible = false));
   robot.amp = 0; poseGo2(robot, 0, 0, 0);
   showFrames();
-  ['zPred', 'zObs', 'zDiff'].forEach((id) => paintZ(id, new Array(RUN.bundle.latent_dim).fill(0), 1, id === 'zDiff'));
-  $('zRmse').textContent = 'rmse –';
   setBanner(null);
   if (BLOCKS[0]) buildFutures(BLOCKS[0].plan);
   renderPanels(); updateButtons();
@@ -518,11 +500,6 @@ function finishBlock() {
   S.frames.push(exec.observation.png); showFrames();
   S.hist = [S.hist[S.hist.length - 1], exec.applied_action];
   S.t = exec.sim_end_s;
-  const zp = plan.predicted_next_latent || [], zo = exec.observed_latent || [];
-  const scale = Math.max(1e-9, ...zp.map(Math.abs), ...zo.map(Math.abs));
-  const zd = zp.map((v, i) => Math.abs((v ?? 0) - (zo[i] ?? 0)));
-  paintZ('zPred', zp, scale); paintZ('zObs', zo, scale); paintZ('zDiff', zd, Math.max(1e-9, ...zd), true);
-  $('zRmse').textContent = `rmse ${Math.sqrt(zd.reduce((a, v) => a + v * v, 0) / Math.max(1, zd.length)).toPrecision(3)}`;
   if (exec.surprise.stop_commanded) S.alarm = true;
 }
 function finishRun() {
@@ -530,7 +507,7 @@ function finishRun() {
   const r = END.reason;
   const map = {
     goal_reached: ['goal', 'Goal reached', `${END.blocks} blocks · ${END.sim_time_s.toFixed(1)} s simulated`],
-    surprise_stop: ['alarm', 'Stop latched', `latent surprise exceeded the calibrated threshold ${TH.toPrecision(3)}`],
+    surprise_stop: ['alarm', 'Stopped safely', 'The result differed from the prediction.'],
     stalled: ['stall', 'Planner stalled', 'zero first block chosen repeatedly near the goal (D-028)'],
     fall: ['alarm', 'Fall detected', `after ${END.blocks} blocks`],
     out_of_bounds: ['alarm', 'Out of bounds', `after ${END.blocks} blocks`],
@@ -548,60 +525,74 @@ function setBanner(kind, title, sub) {
 }
 
 // ---------------------------------------------------------------- HUD
-const f2 = (v) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2);
-const fmt = (v) => (v == null ? '–' : Math.abs(v) >= 0.01 ? v.toFixed(3) : v.toExponential(2));
-$('runId').textContent = RUN.run_id;
-$('bundleId').textContent = RUN.bundle.bundle_id;
 $('levelTag').textContent = RUN.fallback_level;
-$('arenaTag').textContent = `${A.toFixed(3)} × ${RUN.scene.arena_height_m.toFixed(3)} m`;
-$('camTag').textContent = `${RUN.camera.width_px} × ${RUN.camera.height_px} rgb`;
-$('latTag').textContent = `${RUN.bundle.latent_dim}-d`;
+$('camTag').textContent = `${RUN.camera.width_px} × ${RUN.camera.height_px} camera`;
+
+const STAGE_LABELS = { imagine: 'Predicting', score: 'Comparing', lock: 'Choosing', execute: 'Moving', compare: 'Checking' };
+const STATUS_LABELS = { paused: 'Ready', waiting: 'Waiting', ended: 'Complete' };
+function candidateName(candidate) {
+  const id = candidate.id || '';
+  if (candidate.family === 'detour_left') return 'Detour left';
+  if (candidate.family === 'detour_right') return 'Detour right';
+  if (candidate.family === 'turn_adjust') return `Heading correction · ${id.includes('yawm') ? 'right' : 'left'}`;
+  if (candidate.family === 'stop') {
+    if (id === 'stop_hold') return 'Stop and hold';
+    if (id === 'stop_then_creep') return 'Pause, then move';
+    return `Pause, then turn ${id.endsWith('right') ? 'right' : 'left'}`;
+  }
+  if (id.startsWith('push_accel')) return 'Accelerating push';
+  if (id.includes('yawm')) return 'Direct push · slight right';
+  if (id.includes('yawp0p00')) return 'Direct push · straight';
+  if (id.includes('yawp')) return 'Direct push · slight left';
+  return id.replaceAll('_', ' ');
+}
+function moveText(action) {
+  if (Math.abs(action.forward_mps) < 0.01 && Math.abs(action.yaw_rate_rps) < 0.01) return `Stop for ${action.duration_s.toFixed(1)} seconds`;
+  const forward = action.forward_mps > 0 ? `Forward ${action.forward_mps.toFixed(2)} m/s` : 'Hold position';
+  const turn = Math.abs(action.yaw_rate_rps) < 0.01 ? 'straight' : `turn ${action.yaw_rate_rps > 0 ? 'left' : 'right'}`;
+  return `${forward} · ${turn}`;
+}
+function reasonText(reason) {
+  if (reason === 'minimum_score') return 'Best balance of progress and safety';
+  if (reason === 'all_moving_candidates_exceed_risk_limit') return 'Moving looked unsafe, so Forepaw chose to stop';
+  return reason.replaceAll('_', ' ');
+}
+function scoreDetails(candidate) {
+  const p = candidate.parts;
+  return `Goal ${p.goal.toFixed(3)} · risk ${p.risk.toFixed(3)} · stall ${p.stall.toFixed(3)} · effort ${p.effort.toFixed(3)} · change ${p.change.toFixed(3)}`;
+}
 function renderPanels() {
   const b = cur() || BLOCKS[BLOCKS.length - 1];
   if (b) {
     const P0 = b.plan, a = P0.first_action;
-    $('pId').textContent = P0.selected_id;
-    $('pAct').textContent = `v ${a.forward_mps.toFixed(2)} m/s · ω ${f2(a.yaw_rate_rps)} rad/s`;
-    $('pReason').textContent = P0.selection_reason;
-    $('pLock').className = 'lock';
-    $('pLock').textContent = P0.locked_at_utc.slice(11, 23) + ' UTC';
-    $('pLat').textContent = `${(P0.planning_latency_s * 1000).toFixed(1)} ms · ${P0.rankings.length} × ${RUN.bundle.horizon_blocks} predictions`;
-    const rows = P0.rankings.slice(0, 6), max = Math.max(...rows.map((r) => r.total));
-    $('cands').innerHTML = rows.map((r) => `<div class="cand${r.id === P0.selected_id ? ' sel' : ''}"><span class="rk">${String(r.rank).padStart(2, '0')}</span><div class="nm"><span title="${r.id}">${r.id}</span><div class="bar">${PARTS.map(([k, , c]) => `<span style="width:${(100 * Math.max(0, r.parts[k])) / max}%;background:${c}" title="${k} ${r.parts[k]}"></span>`).join('')}</div></div><span class="tot">${r.total.toFixed(3)}</span></div>`).join('');
+    $('pId').textContent = candidateName({ id: P0.selected_id, family: P0.selected_family });
+    $('pAct').textContent = moveText(a);
+    $('pReason').textContent = reasonText(P0.selection_reason);
+    const rows = P0.rankings.slice(0, 3);
+    const selected = P0.rankings.find((r) => r.id === P0.selected_id);
+    if (selected && !rows.some((r) => r.id === selected.id)) rows[rows.length - 1] = selected;
+    $('cands').innerHTML = rows.map((r) => {
+      const chosen = r.id === P0.selected_id;
+      return `<div class="cand${chosen ? ' sel' : ''}" title="${scoreDetails(r)}"><span class="rk">#${r.rank}</span><div class="nm"><span>${candidateName(r)}</span></div><span class="pick">${chosen ? 'chosen' : ''}</span></div>`;
+    }).join('');
   }
-  $('legend').innerHTML = PARTS.map(([, n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join('');
-  const h = S.hist;
-  $('a0').innerHTML = `a₋₂ <b>${h[0] ? h[0].forward_mps.toFixed(2) + ' · ' + f2(h[0].yaw_rate_rps) : '–'}</b>`;
-  $('a1').innerHTML = `a₋₁ <b>${h[1] ? h[1].forward_mps.toFixed(2) + ' · ' + f2(h[1].yaw_rate_rps) : '–'}</b>`;
   const d = S.surprise[S.surprise.length - 1];
-  $('sNow').innerHTML = `${d === undefined ? '–' : fmt(d)}<small> / ${fmt(TH)} stop threshold · ${RUN.surprise.metric}</small>`;
   const pill = $('sPill');
-  if (S.alarm) { pill.className = 'state alarm'; pill.textContent = 'alarm_latched'; }
-  else if (d === undefined) { pill.className = 'state'; pill.textContent = 'unarmed'; }
-  else { pill.className = 'state ok'; pill.textContent = 'normal'; }
-  spark();
-}
-function spark() {
-  const svg = $('spark'), w = svg.getBoundingClientRect().width || 300, h = 74, l = 40, r = 6, tp = 6, b = 14;
-  const vals = S.surprise, n = Math.max(20, vals.length), ymax = Math.max(TH * 2, ...vals.map((v) => Math.min(v, TH * 6)));
-  const x = (i) => l + (i / (n - 1)) * (w - l - r), y = (v) => tp + (1 - Math.min(v, ymax) / ymax) * (h - tp - b);
-  let s = `<g font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="9.5" fill="#8A8A93">`;
-  for (const v of [0, TH, ymax]) s += `<text x="${l - 4}" y="${y(v) + 3}" text-anchor="end">${v === 0 ? '0' : v.toPrecision(2)}</text>`;
-  s += `<text x="${l}" y="${h - 2}">block 1</text><text x="${w - r}" y="${h - 2}" text-anchor="end">${n}</text></g>`;
-  s += `<line x1="${l}" x2="${w - r}" y1="${y(0)}" y2="${y(0)}" stroke="rgba(24,24,27,.12)"/>`;
-  s += `<line x1="${l}" x2="${w - r}" y1="${y(TH)}" y2="${y(TH)}" stroke="#D12F35" stroke-opacity=".7" stroke-dasharray="3 3"/>`;
-  if (vals.length) {
-    const pts = vals.map((v, i) => `${x(i)},${y(v)}`).join(' ');
-    s += `<polyline points="${pts}" fill="none" stroke="#18181B" stroke-width="1.4" stroke-linejoin="round"/>`;
-    vals.forEach((v, i) => { const bad = v > TH; if (bad || i === vals.length - 1) s += `<circle cx="${x(i)}" cy="${y(v)}" r="${bad ? 3.8 : 2.8}" fill="${bad ? '#D12F35' : '#18181B'}"/>`; });
+  if (S.alarm || (d !== undefined && d > TH)) {
+    pill.className = 'state alarm'; pill.textContent = 'Unexpected';
+    $('sCopy').textContent = 'The result differed from the prediction, so Forepaw stopped the robot.';
+  } else if (d === undefined) {
+    pill.className = 'state'; pill.textContent = 'Waiting';
+    $('sCopy').textContent = 'The result of each move is checked before Forepaw plans again.';
+  } else {
+    pill.className = 'state ok'; pill.textContent = 'Matched';
+    $('sCopy').textContent = 'The result stayed within the expected range. Forepaw can choose the next move.';
   }
-  svg.setAttribute('viewBox', `0 0 ${w} ${h}`); svg.innerHTML = s;
 }
 function updateButtons() {
   const done = S.status === 'ended';
   $('runBtn').textContent = S.status === 'running' && !S.stepOnce ? 'Pause' : 'Play';
   $('runBtn').disabled = done; $('stepBtn').disabled = done || S.status === 'running';
-  $('liveTag').textContent = END ? `recorded · complete · ${END.blocks} blocks` : `recorded · ${BLOCKS.length} blocks`;
 }
 
 // ---------------------------------------------------------------- labels
@@ -655,7 +646,6 @@ function resize() {
   camera.aspect = w / h; camera.fov = w / h < 1 ? 52 : 38; camera.updateProjectionMatrix();
   res.set(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
   lineMats.forEach((m) => m.resolution.copy(res)); futureLines.forEach((l) => l.material.resolution.copy(res));
-  if (S) spark();
 }
 new ResizeObserver(resize).observe(canvas);
 
@@ -713,16 +703,16 @@ function frame(now) {
   led.material.color.setHex(Math.sin(clock * 5) > 0 ? 0xff2a2a : 0x401010);
 
   $('tT').textContent = (S.t + (ph === 'execute' && S.status === 'running' ? t * DT : 0)).toFixed(1) + ' s';
-  $('tB').textContent = String(S.k).padStart(2, '0');
-  $('tP').textContent = S.status === 'running' ? ph : S.status;
-  $('tPhys').innerHTML = `physics <b>${S.status === 'running' && ph === 'execute' ? 'stepping' : 'paused'}</b>`;
+  const shownMove = END ? Math.min(S.k + 1, END.blocks) : S.k + 1;
+  $('tB').textContent = String(shownMove).padStart(2, '0');
+  $('tP').textContent = S.status === 'running' ? STAGE_LABELS[ph] : (STATUS_LABELS[S.status] || S.status);
   document.querySelectorAll('#pipe div').forEach((d) => {
     const active = S.status === 'running' || S.status === 'waiting';
     const on = active && d.dataset.ph === ph, done = active && ORDER.indexOf(d.dataset.ph) < ORDER.indexOf(ph);
     d.classList.toggle('on', on); d.classList.toggle('done', done);
     d.querySelector('.fill').style.width = on ? `${t * 100}%` : done ? '100%' : '0';
   });
-  placeLabel(label('goal', 'callout accent'), W(...P(goal.x, goal.y), 0.01), ['Goal', `x ${goal.x.toFixed(2)} · y ${goal.y.toFixed(2)} · r ${goal.r.toFixed(2)} m`]);
+  placeLabel(label('goal', 'callout accent'), W(...P(goal.x, goal.y), 0.01), ['Goal', 'Reach this area']);
   placeLabel(label('dimx', 'plain dim'), W(A / 2, -0.62, 0.02), `${A.toFixed(3)} m`);
   placeLabel(label('dimy', 'plain dim'), W(-0.62, A / 2, 0.02), `${RUN.scene.arena_height_m.toFixed(3)} m`);
   placeLabel(label('axx', 'plain'), W(OFF + 0.66, OFF, 0.02), 'x');
@@ -734,16 +724,16 @@ function frame(now) {
     const st = b && b.plan.selected_states[k];
     placeLabel(label('wp' + k, 'wp'), st ? W(...P(st.x, st.y), 0.05) : new THREE.Vector3(), `+${((k + 1) * DT).toFixed(1)}s`, !!wp && !!st && (k === 0 || k % 2 === 1));
   }
-  placeLabel(label('robot', 'callout tall flip'), W(...P(rob.x, rob.y), 0.44 * RS), ['Go2 · ground truth', `x ${rob.x.toFixed(3)} m · y ${rob.y.toFixed(3)} m`, `θ ${f2(rob.yaw)} rad · v ${v.toFixed(2)} m/s`]);
+  placeLabel(label('robot', 'callout tall flip'), W(...P(rob.x, rob.y), 0.44 * RS), ['Go2', Math.abs(v) > 0.01 ? `Moving ${Math.abs(v).toFixed(2)} m/s` : 'Ready']);
   objs.forEach((o, i) => placeLabel(label('box' + i, 'callout low'), W(...P(o.x, o.y), BS + 0.01), [o.id, `appearance ${o.appearance}`]));
-  placeLabel(label('ghost', 'callout accent low'), ghost.g.position.clone().setY(0.44 * RS), ['Locked prediction', `t + ${DT} s · readout`], ghost.g.visible && ph !== 'compare' && !S.alarm);
+  placeLabel(label('ghost', 'callout accent low'), ghost.g.position.clone().setY(0.44 * RS), ['Predicted next position', `after ${DT.toFixed(1)} seconds`], ghost.g.visible && ph !== 'compare' && !S.alarm);
 
   applyCam(rdt);
   composer.render();
   requestAnimationFrame(frame);
 }
 
-// ---------------------------------------------------------------- controls and live follow
+// ---------------------------------------------------------------- controls
 function go(once) {
   if (S.status === 'ended') return;
   const fresh = S.phase === 'score' && S.phaseT >= 1 && S.status === 'paused';
