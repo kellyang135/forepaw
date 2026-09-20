@@ -82,7 +82,11 @@ def coverage_report(episodes: Iterable[EpisodeRecord]) -> dict[str, Any]:
         )
         totals[f"{split}.episodes"] += 1
         bucket["scene"][episode.scene_id] += 1
-        bucket["termination"][episode.metadata.get("termination_reason", "unrecorded")] += 1
+        ended = episode.metadata.get("termination_reason") or next(
+            (b.termination_reason for b in reversed(episode.blocks) if b.termination_reason),
+            "unrecorded",
+        )
+        bucket["termination"][ended] += 1
         previous_family: str | None = None
         for block in episode.blocks:
             transition = block.transition
