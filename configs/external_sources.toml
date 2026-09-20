@@ -1,12 +1,12 @@
 schema_version = 1
-status = "PINNED_WITH_UNVERIFIED_RUNTIME"
+status = "PINNED_WITH_UNVERIFIED_DIMOS"
 
 [lewm]
 repository = "https://github.com/lucas-maes/le-wm"
 commit = "8edfeb336732b5f3ce7b8b210d0ba370a09e2cac"
 license = "MIT"
-verified_locally = false
-notes = "Upstream README currently specifies Python 3.10, HDF5 data, Hydra training, and stable-worldmodel[train,env]."
+verified_locally = true
+notes = "Verified from clean project revision 85d9bca with Python 3.10.19, torch 2.14.0, and stable-worldmodel 0.1.1: 17 upstream API/loss/rollout/cache/checkpoint/resume/eval/bundle tests passed. This is software integration evidence, not Go2 prediction quality."
 
 [dimos]
 repository = "https://github.com/dimensionalOS/dimos"

@@ -125,6 +125,21 @@ Do not write “looks good.” Include a number, trace, image reference, or expl
 - Decision / next discriminating test: review the ten-block montage, obtain both approvals, then use the copied split for a canary and fresh MjLab wave on non-iCloud storage
 - Next owner and deadline: both owners; before training on collected Go2 data
 
+### 2026-09-20 — Pinned LeWM local compatibility — `20260920T072900Z-lewm-local-verify`
+
+- Owner: Person B / ML
+- Source revision / dirty: `85d9bca7fcb5044bd03c903634e58113c233d576`; clean sparse checkout
+- Config and bundle IDs: le-wm `8edfeb336732b5f3ce7b8b210d0ba370a09e2cac`; Python 3.10.19; torch 2.14.0; stable-worldmodel 0.1.1
+- Dataset/split IDs: synthetic test fixtures only; no Go2 dataset
+- Command: isolated `/private/tmp` environment, `pytest -q tests/test_lewm_torch.py tests/test_lewm_cache.py` with `GO2WM_LEWM_REPO` pinned
+- Expected criterion: upstream architecture/API loads; exact loss and rollout parity; cache, train, checkpoint, resume, evaluation, and bundle reload tests pass
+- Observed result: 17 passed, 0 skipped in 39.32 seconds; MPS built and available outside the sandbox
+- Evidence path: `artifacts/runs/20260920T072900Z-lewm-local-verify/`
+- Status: VERIFIED for pinned local software compatibility only
+- Known confounds: tiny synthetic end-to-end fixture emits numerical readout warnings; no Go2 data or CUDA benchmark was used
+- Decision / next discriminating test: strict-load a fresh MjLab wave, run baseline/cache and a two-batch overfit before any paid main training
+- Next owner and deadline: Person B after fresh data acceptance
+
 ## 4. G0 simulator feasibility procedure
 
 Owner: SIM. Witness: ML for at least one complete pass.

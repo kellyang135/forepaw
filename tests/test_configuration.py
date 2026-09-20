@@ -27,7 +27,7 @@ def test_eval_manifest_reserves_balanced_scenarios() -> None:
 def test_external_source_validator_keeps_unverified_status_visible() -> None:
     warnings = validate_external_sources(load_toml(ROOT / "configs/external_sources.toml"))
     assert "lewm revision is not pinned" not in warnings
-    assert "lewm has not been verified locally" in warnings
+    assert "lewm has not been verified locally" not in warnings
     assert "dimos has not been verified locally" in warnings
 
 

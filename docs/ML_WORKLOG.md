@@ -13,7 +13,7 @@ evidence: nothing below is VERIFIED until a real-path run artifact exists
 | 1 | Data-contract consumer (strict loader, rejects) | `learning/dataset.py` | PROPOSED: unit-tested on fake data; SIM upgraded it to schema v2; awaiting the G1 packet |
 | 1 | Episode-level splits frozen before fitting | `learning/splits.py` | PROPOSED |
 | 2 | Coverage diagnostics and leak check | `learning/diagnostics.py`, `splits.check_leakage` | PROPOSED |
-| 3 | LeWM adaptation (2-D action, 3 frames, 0.5 s, 192-D) | `learning/lewm_model.py`, `lewm_adapter.py` | PROPOSED: loss and rollout match upstream code exactly (tests below); trained only on fake data |
+| 3 | LeWM adaptation (2-D action, 3 frames, 0.5 s, 192-D) | `learning/lewm_model.py`, `lewm_adapter.py` | VERIFIED for local software compatibility; Go2 prediction quality remains unverified |
 | 3 | Lossless split-pure training caches | `learning/lewm_cache.py` | PROPOSED |
 | 3 | LeWM training loop (MPS/CUDA/CPU) | `learning/lewm_train.py` | PROPOSED: runs end to end on fake data; resume tested |
 | 4 | Linear readouts on real and predicted latents | `learning/readouts.py` | PROPOSED: ridge penalty chosen by episode-grouped CV on train only |
@@ -34,6 +34,12 @@ evidence: nothing below is VERIFIED until a real-path run artifact exists
   6-block candidates (max abs diff below 1e-4), confirming D-022;
 - batched and per-frame encoding, and batched and per-candidate rollouts, agree;
 - cache -> train -> resume -> `lewm-eval` -> bundle reload works end to end.
+
+Clean-source verification on 2026-09-20 used Python 3.10.19 and project
+revision `85d9bca`: 17 tests passed with no skips. The retained environment,
+logs, failure-preserving rerun, package inventory, and checksums are in
+`artifacts/runs/20260920T072900Z-lewm-local-verify/`. This verifies the
+software integration only; it does not establish Go2 prediction quality.
 
 ## Commands
 
