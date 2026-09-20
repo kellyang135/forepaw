@@ -37,3 +37,4 @@ wandb/**
 .codex-finalizer/
 .codex-output/*
 !.codex-output/Forepaw_HackMIT_Dimensional_Pitch_FINAL.pptx
+!.codex-output/Forepaw_HackMIT_Dimensional_Pitch_FINAL_v2.pptx

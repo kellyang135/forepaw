@@ -175,3 +175,8 @@ docs/                   deployment, verification, decisions, and runbooks
 The two-person ownership and handoff plan is in
 [`docs/TWO_PERSON_PLAN.md`](docs/TWO_PERSON_PLAN.md), and experiment-boundary
 decisions are recorded in [`docs/DECISIONS.md`](docs/DECISIONS.md).
+
+## Pitch assets
+
+- [Final presentation](.codex-output/Forepaw_HackMIT_Dimensional_Pitch_FINAL_v2.pptx)
+- [Three-minute script and demo runbook](docs/PITCH.md)

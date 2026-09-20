@@ -553,8 +553,6 @@ const fmt = (v) => (v == null ? '–' : Math.abs(v) >= 0.01 ? v.toFixed(3) : v.t
 $('runId').textContent = RUN.run_id;
 $('bundleId').textContent = RUN.bundle.bundle_id;
 $('levelTag').textContent = RUN.fallback_level;
-$('scope').textContent = RUN.evidence_scope;
-$('modelLabel').textContent = RUN.bundle.model_label;
 $('arenaTag').textContent = `${A.toFixed(3)} × ${RUN.scene.arena_height_m.toFixed(3)} m`;
 $('camTag').textContent = `${RUN.camera.width_px} × ${RUN.camera.height_px} rgb`;
 $('latTag').textContent = `${RUN.bundle.latent_dim}-d`;
