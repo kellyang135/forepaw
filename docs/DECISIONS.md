@@ -294,6 +294,17 @@ Template:
 - Evidence: `artifacts/runs/20260920T084850Z-g2g3-mjlab-wave120/`. In the three-epoch diagnostic, validation auxiliary loss worsened from 0.916 to 0.939, robot real-latent MAE worsened from 1.281 m to 1.302 m, object MAE improved to 0.985 m but remained far behind the 0.060 m visual baseline, and matched actions remained worse than shuffled actions.
 - Supersedes / superseded by: closes P-009 as rejected and advances to P-010; G3 remains failed and fallback F3 remains active.
 
+### D-033 — Freeze learned-model work at fallback F3 after P-010
+
+- Status: Implemented; final fallback acknowledgement by both human owners pending
+- Date / gate: 2026-09-20 / G3 cutoff
+- Owners acknowledging: ML execution and evidence complete; second human owner pending
+- Decision: stop model architecture and training experiments after the bounded 300-update six-step fine-tune. Do not connect the learned bundle to motion or claim predictive control. Release the dataset, instrumentation, baseline, UI, and complete negative results as fallback F3; keep the deterministic reference predictor rehearsal-only.
+- Rationale: multistep validation loss improved 20.7%, but remained 2.79 times copy-last; the matched-vs-shuffled action gap was only +0.095%. The unchanged evaluator reported robot one-step error 1.243 m versus 0.082 m persistence and -0.321% matched-action improvement. Both required G3 gates failed.
+- Consequences: G4 learned ranking, learned-model surprise calibration, learned closed-loop execution, and final-test task claims are out of scope for this release. Reserved test seeds remain untouched. Large local artifacts require durable backup.
+- Evidence: `artifacts/runs/20260920T093200Z-g3-multistep-final/` and prior packet `artifacts/runs/20260920T084850Z-g2g3-mjlab-wave120/`.
+- Supersedes / superseded by: closes P-010 and sets P-015 to F3; supersedes any pending plan to continue learned-model repairs.
+
 ## 3. Assumption register
 
 Every row begins unverified. Change status only with a direct evidence link.

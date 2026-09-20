@@ -1,0 +1,28 @@
+{
+  "best": "epoch_003.pt",
+  "best_val_pred_loss": 0.02352572986412616,
+  "checkpoints": {
+    "epoch_001.pt": {
+      "epoch": 1,
+      "sha256": "56d020eb7b28c08ee1b565336404df2ce78345e3e27f285ae4dfb78a7b2b0a6e",
+      "step": 100,
+      "val_loss": 0.027232350160678227,
+      "val_pred_loss": 0.027232350160678227
+    },
+    "epoch_002.pt": {
+      "epoch": 2,
+      "sha256": "6bd6669e8b479e967fe10531244fe81ff4721a37de12834034b55c59adec7c8a",
+      "step": 200,
+      "val_loss": 0.024806713774090723,
+      "val_pred_loss": 0.024806713774090723
+    },
+    "epoch_003.pt": {
+      "epoch": 3,
+      "sha256": "febbb90bec84653394533d3f9c2e1fc646a5cb62f79f9f2bd26302717cb541e4",
+      "step": 300,
+      "val_loss": 0.02352572986412616,
+      "val_pred_loss": 0.02352572986412616
+    }
+  },
+  "last": "epoch_003.pt"
+}

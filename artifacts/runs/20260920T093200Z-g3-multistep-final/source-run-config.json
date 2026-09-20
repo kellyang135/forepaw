@@ -1,0 +1,154 @@
+{
+  "action_stats": {
+    "mean": [
+      0.2127961956878666,
+      -0.02450553845119618
+    ],
+    "source": "train cache",
+    "std": [
+      0.19554739768614615,
+      0.5930638777601999
+    ]
+  },
+  "architecture": {
+    "action_dim": 2,
+    "embed_dim": 192,
+    "encoder_size": "tiny",
+    "history_frames": 3,
+    "image_size": 224,
+    "num_preds": 1,
+    "patch_size": 14,
+    "predictor_depth": 6,
+    "predictor_dim_head": 64,
+    "predictor_dropout": 0.1,
+    "predictor_emb_dropout": 0.0,
+    "predictor_heads": 16,
+    "predictor_mlp_dim": 2048,
+    "projector_hidden_dim": 2048
+  },
+  "auxiliary": {
+    "enabled": false,
+    "hidden_dim": 128,
+    "kind": "train_only_state_mlp",
+    "runtime_inputs_unchanged": true,
+    "state_mean": [],
+    "state_names": [],
+    "state_scale": [],
+    "weight": 0.0
+  },
+  "best": {
+    "checkpoint": "epoch_001.pt",
+    "val_pred_loss": 0.02965342031703109
+  },
+  "bn_recalibration_batches": 0,
+  "command": [
+    "/private/tmp/go2wm-lewm-venv/bin/python",
+    "-m",
+    "go2wm.learning.lewm_train",
+    "--lewm-repo",
+    "/Users/kellyyang/Documents/ChatGPT/le-wm",
+    "--train-cache",
+    "/private/tmp/go2wm-wave120-run/cache-train",
+    "--val-cache",
+    "/private/tmp/go2wm-wave120-run/cache-validation",
+    "--init-run",
+    "/private/tmp/go2wm-wave120-run/lewm-1150step-10ep",
+    "--init-checkpoint",
+    "best",
+    "--out",
+    "/private/tmp/go2wm-wave120-run/lewm-multistep-source-validation",
+    "--epochs",
+    "1",
+    "--max-steps",
+    "0",
+    "--batch-size",
+    "32",
+    "--multistep-horizon",
+    "6",
+    "--num-workers",
+    "0",
+    "--device",
+    "mps",
+    "--bn-recalibration-batches",
+    "0",
+    "--log-every",
+    "20"
+  ],
+  "created_at_utc": "2026-09-20T09:24:56+00:00",
+  "data": {
+    "dataset_id": "mjlab-wave120-20260920T081500Z",
+    "split_id": "splits-7ae472b8826f",
+    "train_cache": "/private/tmp/go2wm-wave120-run/cache-train",
+    "train_cache_files": {
+      "action.npy": "6c1cc7831be735ddaee1efbfdb6deac3f9e7c415ffb4309af305b9466b79be34",
+      "ep_len.npy": "66609061815d5cb3dd2bcfa4a5f92ea87e59c165f2bcb3ef4f3b270dee7285d9",
+      "ep_offset.npy": "960ceb363f0912a8f8955121ca216d70da1fa43eeb3ddee1379271b9641f12d9",
+      "pixels.npy": "4854eb2c88856da754b46a63266cc31b6d3e0f382b0af69d71f37569c4f1242a",
+      "state.npy": "dab502f18ab33d6477c0d61962f725eacf2c45f871c009d23b4c4afb945d2685"
+    },
+    "train_clips": 3220,
+    "train_episodes": 92,
+    "val_cache": "/private/tmp/go2wm-wave120-run/cache-validation",
+    "val_cache_files": {
+      "action.npy": "6008dc9be392a6996e885eddfdc99c71e8792c71aba756900d5a665c0e4c6829",
+      "ep_len.npy": "9b2229c2548e542c291041b5acfb1ee08591c19306c6f026f8f01e5db96675e7",
+      "ep_offset.npy": "dafaad5d64d698fb66a21f4fe900e7395a55c2922568e84df36fbfa71e05c4e5",
+      "pixels.npy": "9a03731b1f51b29db9828155d4c0f5eeaf2e808460fa18370ec31f711554042a",
+      "state.npy": "05d97a6da45012825abf286e71d9c01a16bcba7e1b62028f898ea7c020c6d6fd"
+    },
+    "val_clips": 665,
+    "val_episodes": 19
+  },
+  "environment": {
+    "device": "mps",
+    "mps_fallback": "1",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "torch": "2.14.0"
+  },
+  "format": "go2wm.lewm-checkpoint.v1",
+  "go2wm_revision": "3adf69e153eff1247beb9c1a829da4ef4d4ac5fc",
+  "lewm": {
+    "commit": "8edfeb336732b5f3ce7b8b210d0ba370a09e2cac",
+    "repo": "/Users/kellyyang/Documents/ChatGPT/le-wm"
+  },
+  "loss": {
+    "sigreg_knots": 17,
+    "sigreg_num_proj": 1024,
+    "sigreg_weight": 0.09
+  },
+  "multistep": {
+    "enabled": true,
+    "horizon": 6,
+    "init_checkpoint": "best",
+    "init_run": "/private/tmp/go2wm-wave120-run/lewm-1150step-10ep",
+    "init_weights_sha256": "269500460733838bfb7c94e0c52b36dad46e1b3b9400ff9bd0f8c15c0f951423",
+    "objective": "mean recursive latent MSE over horizons",
+    "representation_frozen": true,
+    "runtime_inputs_unchanged": true,
+    "trainable_components": [
+      "predictor",
+      "action_encoder",
+      "pred_proj"
+    ]
+  },
+  "optimizer": {
+    "batch_size": 32,
+    "drop_last": true,
+    "epochs": 1,
+    "grad_clip": 1.0,
+    "lr": 5e-05,
+    "name": "AdamW",
+    "precision": "fp32",
+    "schedule": "linear warmup + cosine to 0 (per step)",
+    "total_steps": 0,
+    "warmup_steps": 1,
+    "weight_decay": 0.001
+  },
+  "overfit_batches": 0,
+  "parameters": 18034398,
+  "rehearsal_only": false,
+  "run_id": "lewm-multistep-source-validation",
+  "seed": 3072,
+  "trainable_parameters": 11740254
+}

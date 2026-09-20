@@ -1,0 +1,39 @@
+Changed-code verification
+=========================
+
+Pinned LeWM environment (Python 3.10.19, torch 2.14.0, upstream 8edfeb3):
+
+  GO2WM_LEWM_REPO=/Users/kellyyang/Documents/ChatGPT/le-wm \
+    /private/tmp/go2wm-lewm-venv/bin/python -m pytest -q \
+    tests/test_lewm_torch.py tests/test_lewm_cache.py
+
+Result: 20 passed, 1 optional-environment warning, 16.17 seconds.
+The new alignment test compares all six recursive training predictions to the
+reviewed upstream JEPA rollout and passed at 1e-5 tolerance.
+
+Two-update real-cache MPS smoke:
+
+- frozen encoder parameters: bit-identical
+- frozen projector parameters: bit-identical
+- predictor parameters: changed
+- action-encoder parameters: changed
+- predictor-projector parameters: changed
+- output checkpoint reloaded with its recorded SHA-256
+
+Repository-required handoff gate:
+
+  make check
+
+First sandboxed attempt failed before lint because the existing uv cache was
+not readable (`Operation not permitted`). The required approved rerun passed:
+
+- Ruff: pass
+- Pytest: 201 passed, 6 skipped in 7.39 seconds
+- doctor: pass (`scaffold_ready`; truthfulness warnings retained)
+- fake smoke: pass (software-contract evidence only)
+- candidate contract: 64 candidates, six 0.5-second blocks, first action only
+- protocol verifier: pass; provisional-value warnings retained
+
+The default Python 3.12 environment does not contain torch, so it skipped the
+LeWM-specific file. Those tests were executed separately in the pinned LeWM
+environment as recorded above.

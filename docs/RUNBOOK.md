@@ -155,6 +155,21 @@ Do not write “looks good.” Include a number, trace, image reference, or expl
 - Decision / next discriminating test: run only the predeclared short multistep predictor fine-tune (P-010); if it fails, freeze model work and complete the F3 dataset/instrumentation delivery
 - Next owner and deadline: Person B for P-010; both owners before any learned-control claim
 
+### 2026-09-20 — Final P-010 multistep diagnostic — `20260920T093200Z-g3-multistep-final`
+
+- Owner: Person B / ML
+- Source revision / dirty: clean `3adf69e153eff1247beb9c1a829da4ef4d4ac5fc`
+- Config and bundle IDs: initialized from plain SHA-256 `269500460733838bfb7c94e0c52b36dad46e1b3b9400ff9bd0f8c15c0f951423`; evidence-only bundle `go2wm-b9a94a218341bf98`
+- Dataset/split IDs: `mjlab-wave120-20260920T081500Z`; `splits-7ae472b8826f`; 92 train/19 validation episodes; test untouched
+- Command: six-step recursive latent loss, frozen encoder/projector, predictor-side components only, 300 MPS updates followed by unchanged `lewm-eval`
+- Expected criterion: beat persistence in state space, matched actions beat shuffled by at least 15%, and all six-step rollouts remain finite
+- Observed result: latent MSE improved 0.029653 to 0.023526 but remained above copy-last 0.008428; action gap +0.095%. Robot one-step was 1.243 m versus 0.082 m persistence; matched six-block robot error was 1.336 m versus 1.332 m shuffled; zero nonfinite rollouts.
+- Evidence path: `artifacts/runs/20260920T093200Z-g3-multistep-final/`
+- Status: COMPLETE; G3 FAILED; F3 FROZEN; learned bundle prohibited from motion
+- Known confounds: full G1 and both-owner sign-off remain open; large checkpoints/caches/raw data remain local outside Git
+- Decision / next discriminating test: none before release; stop model work under the hard cutoff and preserve the negative result
+- Next owner and deadline: both human owners acknowledge fallback F3 and copy large artifacts to durable storage before reboot
+
 ## 4. G0 simulator feasibility procedure
 
 Owner: SIM. Witness: ML for at least one complete pass.

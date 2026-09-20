@@ -17,6 +17,7 @@ evidence: nothing below is VERIFIED until a real-path run artifact exists
 | 3 | Lossless split-pure training caches | `learning/lewm_cache.py` | PROPOSED |
 | 3 | LeWM training loop (MPS/CUDA/CPU) | `learning/lewm_train.py` | PROPOSED: runs end to end on fake data; resume tested |
 | 3 | Optional training-only state auxiliary | `learning/lewm_train.py` | SOFTWARE-VERIFIED; first real diagnostic rejected because robot readout and action conditioning did not improve |
+| 3 | Six-step predictor-only fine-tune | `learning/lewm_train.py` | COMPLETE/REJECTED: latent loss improved, but persistence and shuffled-action G3 controls failed; F3 frozen |
 | 4 | Linear readouts on real and predicted latents | `learning/readouts.py` | PROPOSED: ridge penalty chosen by episode-grouped CV on train only |
 | 5 | Horizon metrics, free vs interaction, shuffled actions, baselines | `learning/prediction_eval.py`, `report.py` | PROPOSED |
 | 6 | Planner (64 candidates, scoring) | `planning/` (pre-existing) | PROPOSED; weights still defaults, not validation-tuned |
