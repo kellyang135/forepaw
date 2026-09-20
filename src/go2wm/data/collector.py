@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -15,6 +15,7 @@ from go2wm.contracts import (
     Goal2D,
     ResetRequest,
     RGBObservation,
+    StateLabels,
 )
 from go2wm.sim.base import SimulatorAdapter
 
@@ -80,11 +81,41 @@ class EpisodeCollector:
         commands = tuple(actions)
         if len(commands) > self.config.max_episode_blocks:
             raise CollectionError(
-                f"episode has {len(commands)} blocks; maximum is "
-                f"{self.config.max_episode_blocks}"
+                f"episode has {len(commands)} blocks; maximum is {self.config.max_episode_blocks}"
             )
         self._validate_commands(commands)
+        return self._collect(request, lambda index, _labels: commands[index], len(commands))
 
+    def collect_with_policy(
+        self,
+        request: EpisodeRequest,
+        policy: Callable[[int, StateLabels], ActionCommand],
+        blocks: int,
+    ) -> EpisodeRecord:
+        """Collect an episode whose next command depends on the current simulator labels.
+
+        Privileged labels may steer *collection* (D-004 allows it); they are never
+        stored as runtime inputs. Each returned command is validated like ``collect``.
+        """
+
+        if not 0 < blocks <= self.config.max_episode_blocks:
+            raise CollectionError(
+                f"episode has {blocks} blocks; allowed range is 1..{self.config.max_episode_blocks}"
+            )
+
+        def next_action(index: int, labels: StateLabels) -> ActionCommand:
+            action = policy(index, labels)
+            self._validate_commands((action,))
+            return action
+
+        return self._collect(request, next_action, blocks)
+
+    def _collect(
+        self,
+        request: EpisodeRequest,
+        next_action: Callable[[int, StateLabels], ActionCommand],
+        length: int,
+    ) -> EpisodeRecord:
         reset_report = self.simulator.reset(request.reset)
         if not reset_report.settled:
             raise CollectionError(
@@ -102,14 +133,15 @@ class EpisodeCollector:
 
         blocks: list[EpisodeBlock] = []
         previous = history[-1]
-        for index, action in enumerate(commands):
+        for index in range(length):
+            action = next_action(index, self.simulator.labels())
             transition = self.simulator.execute_block(action)
             self._require_boundary_match(previous, transition.start_observation)
             if transition.events.fell:
                 termination_reason = "fall"
             elif transition.events.out_of_bounds:
                 termination_reason = "out_of_bounds"
-            elif index == len(commands) - 1:
+            elif index == length - 1:
                 termination_reason = "fixed_length"
             else:
                 termination_reason = None
@@ -118,9 +150,7 @@ class EpisodeCollector:
                     episode_id=request.reset.episode_id,
                     block_index=index,
                     transition=transition,
-                    collected_at_utc=datetime.now(timezone.utc).isoformat().replace(
-                        "+00:00", "Z"
-                    ),
+                    collected_at_utc=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                     valid=True,
                     termination_reason=termination_reason,
                 )
@@ -157,9 +187,7 @@ class EpisodeCollector:
                 )
 
     @staticmethod
-    def _require_boundary_match(
-        expected: RGBObservation, actual: RGBObservation
-    ) -> None:
+    def _require_boundary_match(expected: RGBObservation, actual: RGBObservation) -> None:
         if expected is actual:
             return
         if (
