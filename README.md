@@ -1,177 +1,174 @@
-# Go2 World Model
+# Forepaw
 
-Predictive control for a simulated Unitree Go2: use a compact visual world model
-to compare push, detour, adjustment, and stop futures, execute one 0.5-second
-block, observe the result, and replan.
+Forepaw is an agentic robotics system for the Dimensional track. It connects a
+dimOS skill interface to a closed-loop planner and a simulated Unitree Go2,
+then records every prediction, decision, action, and safety response for replay.
 
-> **Current status:** the clean-source formal G0 trial suite passed every
-> technical check and the direct-MjLab G1A timing/data packet passed strict
-> reload and checksum verification. G0 remains pending the required second
-> human owner's sign-off, and full G1 remains open because the retained G1A
-> collection packet did not traverse dimOS. The built-in pinned dimOS simulator
-> still substitutes Go1 and remains excluded. The retained evidence
-> is in
-> [`artifacts/runs/20260920T073000Z-g0-formal-mjlab/`](artifacts/runs/20260920T073000Z-g0-formal-mjlab/)
-> and
-> [`artifacts/runs/20260920T073500Z-g1a-mjlab/`](artifacts/runs/20260920T073500Z-g1a-mjlab/).
-> A real pinned-dimOS blueprint/MCP rehearsal now also reaches the external
-> true-Go2 MjLab path; its retained packet is in
-> [`artifacts/runs/20260920T090000Z-dimos-mjlab/`](artifacts/runs/20260920T090000Z-dimos-mjlab/).
-> That run uses the explicitly labeled privileged reference model. No learned
-> Go2 world model or learned closed-loop task performance is verified, and full
-> L7 remains open until active stop preemption is verified on the target Linux
-> deployment; process restart has been exercised successfully.
+The demo answers a practical question: can an agent inspect several possible
+physical futures, choose a short safe action, observe what actually happened,
+and replan without hiding the decision process?
 
-Latest full-tree local software verification (2026-09-20): **201 tests passed,
-6 skipped**; Ruff and all CLI/protocol smoke checks passed. The skips include
-unavailable torch/LeWM, headless OpenGL, and environment-gated controller paths.
-These figures are software-contract evidence, not a passing Go2 simulator gate.
+## What I built
 
-## The two-person split
+- **A reusable dimOS blueprint** registered as `go2-world-model.forepaw` with
+  three MCP skills: `imagine`, `plan_to`, and `stop_motion`.
+- **A receding-horizon planner** that evaluates exactly 64 six-block action
+  candidates, executes only the first 0.5-second block, observes the result,
+  and replans.
+- **A true-Go2 simulation path** using the MjLab Go2 controller and MuJoCo
+  scene, kept outside dimOS behind a versioned loopback controller service.
+- **Single-owner motion control**: dimOS requests plans, but only the controller
+  service can publish simulator actions.
+- **Fail-closed safety behavior** for malformed requests, controller loss,
+  surprise detection, and explicit stop requests.
+- **Append-only evidence logs** that persist the selected plan before motion and
+  keep planner-visible inputs separate from privileged simulator labels.
+- **A browser replay UI** for push, detour, and surprise-stop runs, packaged as
+  a static Vercel site for a reliable hackathon demo.
 
-- **Person A — simulator, data, and deployment:** Go2/MuJoCo scene, action
-  timing, camera, reset behavior, collection, dataset integrity, dimOS command
-  ownership, and the live demo path.
-- **Person B — learning, planning, and evaluation:** LeWM adaptation, training,
-  readouts, rollout metrics, candidate scoring, surprise calibration,
-  baselines, and frozen evaluation.
-- **Shared integration windows:** hours 2, 6, 10, 12, 18, and 22. Neither
-  person changes a shared contract without recording the decision and getting
-  the other person's acknowledgement.
+## How it works
 
-The detailed ownership and handoff plan is in
-[`docs/TWO_PERSON_PLAN.md`](docs/TWO_PERSON_PLAN.md). Start every work session
-with [`docs/RUNBOOK.md`](docs/RUNBOOK.md), and do not call a milestone complete
-until its evidence is recorded according to
-[`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+```text
+dimOS MCP
+  -> ForepawSkills: imagine | plan_to | stop_motion
+    -> loopback JSON controller client
+      -> controller service (sole motion owner)
+        -> 64-candidate planner
+          -> true-Go2 MjLab simulation
+            -> lock decision -> execute 0.5 s -> observe -> replan
+```
 
-The retained Person A findings, exact upstream revisions, passed sub-checks,
-blockers, and recovery sequence are in
-[`docs/PERSON_A_EXECUTION.md`](docs/PERSON_A_EXECUTION.md).
-The exact Linux/NVIDIA controller-training, playback, handoff, and integration
-procedure is in
-[`docs/GO2_CONTROLLER_RECOVERY.md`](docs/GO2_CONTROLLER_RECOVERY.md).
-The completed CUDA training/export result and its remaining acceptance work are
-summarized in
-[`artifacts/runs/20260920T034139Z-go2-controller-training/notes.md`](artifacts/runs/20260920T034139Z-go2-controller-training/notes.md).
+Each planning cycle receives three 2 Hz RGB observations and the two commands
+between them. Candidate actions are `[forward_velocity_mps, yaw_rate_rps]`;
+lateral velocity is always zero. The planner scores six-block futures but sends
+only the first block to the robot controller.
 
-## Quick start
+The telemetry viewer is deliberately downstream of control. It can replay or
+follow the append-only log, but it cannot change a plan or command motion.
 
-The core scaffold has no runtime dependencies beyond Python 3.10.12+. Development
-uses pytest and Ruff.
+## Verified demo results
+
+| Area | Retained result |
+| --- | --- |
+| dimOS integration | External blueprint and all three MCP skills discovered; valid and invalid request paths exercised |
+| Closed-loop execution | Three goal-reaching dimOS-to-true-Go2 push runs; 45 planning cycles across the goal and restart checks |
+| Planner contract | 64 candidates per cycle, six 0.5 s blocks per candidate, first block only executed, plan locked before motion |
+| Reliability | Controller process restart verified; malformed `imagine` input failed closed; idle stop acknowledged |
+| Planner latency | 2.661 ms p50, 3.015 ms p90, 8.233 ms p95 over 45 cycles with physics paused during planning |
+| Go2 scene behavior | 5/5 movable-box trials moved at least 1.2292 m; 5/5 resistant-box trials stayed at or below 0.0448 m; zero falls |
+| Data/timing packet | Three predeclared seeds completed 20 consecutive valid 0.5 s blocks with strict reload, split, timing, and checksum checks |
+| Software checks | 201 passed, 6 skipped; Ruff, CLI, protocol, and focused dimOS checks passed |
+
+The retained dimOS rehearsal is
+[`artifacts/runs/20260920T090000Z-dimos-mjlab/`](artifacts/runs/20260920T090000Z-dimos-mjlab/).
+The formal scene and timing packets are
+[`artifacts/runs/20260920T073000Z-g0-formal-mjlab/`](artifacts/runs/20260920T073000Z-g0-formal-mjlab/)
+and
+[`artifacts/runs/20260920T073500Z-g1a-mjlab/`](artifacts/runs/20260920T073500Z-g1a-mjlab/).
+Each published packet includes checksums or links to its machine-readable report.
+
+## Run the demo
+
+### Static evidence replay
+
+The fastest demo path has no build step:
+
+```bash
+python3 -m http.server 8788 --directory deploy/vercel/public
+```
+
+Open [http://127.0.0.1:8788](http://127.0.0.1:8788). The replay contains a
+dimOS-to-Go2 run plus direct push/detour and surprise-stop rehearsals. It is a
+recorded evidence viewer, not a browser-hosted simulator.
+
+### Software verification
 
 ```bash
 uv sync --extra dev
 make check
+make dimos-smoke
 ```
 
-If the repository is in a cloud-managed folder that evicts `.venv` files, keep
-the environment on a local volume and use the same path for setup and checks:
+The core scaffold uses Python 3.10.12+. If a cloud-managed folder evicts the
+virtual environment, place it on a local volume:
 
 ```bash
 UV_PROJECT_ENVIRONMENT=/path/on-local-disk/go2wm-venv uv sync --extra dev --extra sim
 UV_PROJECT_ENVIRONMENT=/path/on-local-disk/go2wm-venv make check
 ```
 
-For the pinned true-Go2 model/render probe:
+### dimOS and true-Go2 path
+
+Install this package into the pinned dimOS environment without replacing its
+dependencies:
 
 ```bash
-uv sync --extra dev --extra sim
-.venv/bin/mjpython scripts/verify_go2_model.py \
-  --cache-dir /path/to/menagerie-cache \
-  --output-dir artifacts/runs/<run_id> \
-  --render
+uv pip install --no-deps -e /absolute/path/to/hackmit
+dimos list | grep go2-world-model.forepaw
 ```
 
-To audit a checkout of the pinned controller-training source:
+Start the controller service in the MuJoCo/MjLab environment, then start the
+blueprint and call its skills from the dimOS environment:
 
 ```bash
-PYTHONPATH=src python scripts/audit_go2_controller_source.py \
-  --checkout /path/to/unitree_rl_mjlab \
-  --output-dir artifacts/runs/<run_id>
+dimos run go2-world-model.forepaw
+dimos mcp list-tools
+dimos mcp call imagine --json-args '{"actions":[[0.4,0.0],[0.4,0.0]]}'
+dimos mcp call plan_to --json-args '{"x":1.3,"y":0.35}' --timeout 120
+dimos mcp call stop_motion --json-args '{}'
 ```
 
-On the intended Linux/NVIDIA training machine, run the read-only host gate
-before installing or training:
+The exact controller command, pinned artifacts, platform notes, and retained
+verification procedure are in
+[`docs/DIMOS_DEPLOYMENT.md`](docs/DIMOS_DEPLOYMENT.md).
 
-```bash
-PYTHONPATH=src python scripts/check_go2_training_host.py
-```
+## Evidence and safety design
 
-Run a deterministic, non-robot smoke test:
+Forepaw makes its control loop auditable rather than showing only the final
+robot trajectory:
 
-```bash
-make smoke
-make candidates
-```
+1. Candidate predictions, costs, selection, model identity, and timestamp are
+   written and fsynced before motion.
+2. The applied command is recorded separately from the requested command.
+3. The next observation is compared with the locked prediction.
+4. A surprise threshold can command a stop; it does not silently adapt or
+   rewrite the prior prediction.
+5. Privileged poses, contacts, and mobility labels live under `ground_truth`
+   telemetry and never enter the runtime planner interface.
 
-The fake backend exists to catch contract bugs early. Passing it is necessary,
-but never evidence that Go2 pushing or the learned model works.
+See [`docs/UI_INTEGRATION.md`](docs/UI_INTEGRATION.md) for the log schema and
+[`docs/VERIFICATION.md`](docs/VERIFICATION.md) for the evidence rules.
+
+## Scope
+
+The deployed hackathon replay and retained dimOS rehearsal use an explicitly
+labeled **privileged reference predictor** to verify integration, planning,
+motion ownership, logging, restart behavior, and the user-facing workflow. The
+learned LeWM experiments did not pass the frozen G3 predictive-control gate, so
+the learned model is not connected to motion and no learned closed-loop result
+is claimed.
+
+Active stop preemption still needs verification on the target Linux deployment;
+macOS single-threaded MuJoCo can acknowledge a stop only when the active plan
+returns. The formal G0 technical checks passed, with the required second-owner
+sign-off still pending. These are acceptance items, not blockers for the
+recorded Dimensional-track MVP.
 
 ## Repository map
 
 ```text
-configs/                 experiment contract and provisional gates
-docs/                    two-person plan, verification, runbook, decisions
-src/go2wm/contracts.py   shared boundary types
-src/go2wm/sim/           simulator protocol and deterministic fake
-src/go2wm/data/          collector and manifest validation
-src/go2wm/model/         world-model/readout interfaces and bundle metadata
-src/go2wm/planning/      64 candidates, scoring, and MPC selection
-src/go2wm/runtime/       surprise and stop-oriented runtime behavior
-tests/                   executable contract tests
-scripts/                 repository and protocol verification helpers
+src/go2wm/integration/  dimOS blueprint, skills, and controller service
+src/go2wm/planning/     candidate library, scoring, and MPC selection
+src/go2wm/runtime/      closed-loop execution and surprise-stop behavior
+src/go2wm/sim/          simulator protocol and backends
+src/go2wm/data/         collection and manifest validation
+src/go2wm/model/        model/readout interfaces and bundle metadata
+deploy/vercel/          public-safe static evidence replay
+artifacts/runs/         retained reports, telemetry, media, and checksums
+tests/                  executable contract and integration checks
+docs/                   deployment, verification, decisions, and runbooks
 ```
 
-## Viewer and closed loop
-
-`make ui-demo && make ui-serve` records a closed-loop run on the fake backend
-and replays it in the 3D viewer. The runner locks each plan to
-`runs/<id>/ui.jsonl` before any motion (D-010, D-027). See
-[`docs/UI_INTEGRATION.md`](docs/UI_INTEGRATION.md).
-
-## Non-negotiable experiment rules
-
-1. Split by complete scenario/episode seeds before any model training.
-2. Store the observation before a command, the command actually applied, and
-   the observation after it, all on simulator time.
-3. Aggregate transient contact and fall events across each action block.
-4. Never expose simulator poses, mobility flags, contacts, or oracle rollouts
-   to the deployed planner.
-5. Test readouts on predicted latents, not only encoded real frames.
-6. Lock predictions before executing the corresponding command.
-7. Treat contact as valid during pushing; it is not itself a failure.
-8. Freeze thresholds, score weights, candidate definitions, checkpoint, and
-   seed list before final evaluation.
-9. Report raw counts, exclusions, latency, false stops, and failure cases.
-10. If the complete learned controller misses its gate, present the honest
-    prediction/surprise fallback and label it below the original criterion.
-
-## External integrations
-
-The project intentionally does not vendor LeWM or dimOS. Pin reviewed commits
-in `configs/external_sources.toml` before installation. The upstream LeWM
-instructions currently use Python 3.10 and `stable-worldmodel[train,env]`;
-dimOS exposes skills through `@skill` methods. Treat LeWM quality and complete
-dimOS deployment as unverified until their remaining real-path gates pass.
-
-Forepaw is registered as the external dimOS blueprint
-`go2-world-model.forepaw`. It exposes `imagine`, `plan_to`, and
-`stop_motion` through dimOS MCP while a loopback controller service remains the
-sole simulator motion publisher. See
-[`docs/DIMOS_DEPLOYMENT.md`](docs/DIMOS_DEPLOYMENT.md) for the exact startup and
-verification commands. The skill is named `stop_motion` because `Module.stop`
-is reserved for dimOS lifecycle shutdown.
-
-## First checkpoint
-
-Before training anything, produce one tiny real-path recording and prove:
-
-- every block lasts 0.5 simulated seconds within the agreed tolerance;
-- images are 224 x 224 RGB from the pinned overhead camera;
-- start/end frames, commands, poses, and event summaries share one timeline;
-- episode boundaries and split IDs survive serialization;
-- replay through the deployment path uses the same units and timing.
-
-If this checkpoint fails, stop and repair collection. More data will only make
-the defect more expensive.
+The two-person ownership and handoff plan is in
+[`docs/TWO_PERSON_PLAN.md`](docs/TWO_PERSON_PLAN.md), and experiment-boundary
+decisions are recorded in [`docs/DECISIONS.md`](docs/DECISIONS.md).
