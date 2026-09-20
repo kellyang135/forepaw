@@ -1,0 +1,557 @@
+{
+  "all_checks_passed": false,
+  "bundle_id": "go2wm-bb43d84ca9973ca9",
+  "bundle_path": "/private/tmp/go2wm-wave120-run/eval-baseline/bundles/go2wm-bb43d84ca9973ca9",
+  "coverage": {
+    "command_transitions": {
+      "arc_left->arc_right": 122,
+      "arc_left->stop": 37,
+      "arc_left->straight": 127,
+      "arc_left->turn_in_place": 198,
+      "arc_right->arc_left": 128,
+      "arc_right->stop": 53,
+      "arc_right->straight": 140,
+      "arc_right->turn_in_place": 195,
+      "stop->arc_left": 52,
+      "stop->arc_right": 64,
+      "stop->straight": 31,
+      "stop->turn_in_place": 15,
+      "straight->arc_left": 115,
+      "straight->arc_right": 151,
+      "straight->stop": 34,
+      "straight->turn_in_place": 79,
+      "turn_in_place->arc_left": 187,
+      "turn_in_place->arc_right": 174,
+      "turn_in_place->stop": 55,
+      "turn_in_place->straight": 73
+    },
+    "splits": {
+      "train": {
+        "action_family": {
+          "arc_left": 856,
+          "arc_right": 1010,
+          "stop": 379,
+          "straight": 633,
+          "turn_in_place": 802
+        },
+        "contacted_object": {
+          "light:blue": 566,
+          "resistant:red": 336
+        },
+        "interaction": {
+          "brief_contact": 425,
+          "free": 2791,
+          "push": 410,
+          "resisted": 54
+        },
+        "interaction_fraction": 0.2416,
+        "scene": {
+          "go2wm-push-detour-draft-v0-7b54a57edcf0": 92
+        },
+        "speed": {
+          "0-0.05": 1181,
+          "0.05-0.2": 608,
+          "0.2-0.4": 1022,
+          "0.4+": 869
+        },
+        "termination": {
+          "fixed_length": 92
+        }
+      },
+      "validation": {
+        "action_family": {
+          "arc_left": 199,
+          "arc_right": 217,
+          "stop": 56,
+          "straight": 119,
+          "turn_in_place": 169
+        },
+        "contacted_object": {
+          "light:blue": 135,
+          "resistant:red": 68
+        },
+        "interaction": {
+          "brief_contact": 95,
+          "free": 557,
+          "push": 98,
+          "resisted": 10
+        },
+        "interaction_fraction": 0.2671,
+        "scene": {
+          "go2wm-push-detour-draft-v0-7b54a57edcf0": 19
+        },
+        "speed": {
+          "0-0.05": 225,
+          "0.05-0.2": 146,
+          "0.2-0.4": 229,
+          "0.4+": 160
+        },
+        "termination": {
+          "fixed_length": 19
+        }
+      }
+    },
+    "totals": {
+      "train.blocks": 3680,
+      "train.episodes": 92,
+      "validation.blocks": 760,
+      "validation.episodes": 19
+    },
+    "warnings": []
+  },
+  "data_backend": "mujoco",
+  "dataset_id": "mjlab-wave120-20260920T081500Z",
+  "encoder_kind": "pooled_pixels",
+  "evidence_scope": "data backend: mujoco; model: linear latent baseline (pooled pixels + ridge dynamics); not LeWM",
+  "gate_checks": [
+    {
+      "criterion": "validation real-frame robot readout beats constant-mean baseline",
+      "gate": "G2",
+      "measured": {
+        "constant_mean_m": 1.3071737594904322,
+        "readout_m": 0.09965842998999261
+      },
+      "passed": true
+    },
+    {
+      "criterion": "validation real-frame object readout beats constant-mean baseline",
+      "gate": "G2",
+      "measured": {
+        "constant_mean_m": 1.1820105932349363,
+        "readout_m": 0.05958389523449578
+      },
+      "passed": true
+    },
+    {
+      "criterion": "split leak check passes",
+      "gate": "G2",
+      "measured": {
+        "leak_ok": "True"
+      },
+      "passed": true
+    },
+    {
+      "criterion": "bundle reload reproduces reference output",
+      "gate": "G2",
+      "measured": {
+        "reload_deterministic": "True"
+      },
+      "passed": true
+    },
+    {
+      "criterion": "one-step prediction beats persistence on robot or object position",
+      "gate": "G3",
+      "measured": {
+        "object_model_m": 0.059990393398806935,
+        "object_persistence_m": 0.0,
+        "robot_model_m": 0.1274913167538306,
+        "robot_persistence_m": 0.08195009231831371
+      },
+      "passed": false
+    },
+    {
+      "criterion": "matched commands beat shuffled by >= 15% (robot position, 6 blocks)",
+      "gate": "G3",
+      "measured": {
+        "improvement": -0.002192282622814108,
+        "matched_m": 0.5315857921908996,
+        "shuffled_m": 0.5304229551635529
+      },
+      "passed": false
+    },
+    {
+      "criterion": "rollouts stay finite through 6 blocks",
+      "gate": "G3",
+      "measured": {
+        "nonfinite_rollouts": 0
+      },
+      "passed": true
+    }
+  ],
+  "latency": {
+    "dataset_encode_s": 3.4132720000343397,
+    "first_call_s": 0.03193383303005248,
+    "max_s": 0.03249229094944894,
+    "median_s": 0.03193383303005248,
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "repeats": 5,
+    "scope": "in-process encode + 64-candidate plan through the reloaded bundle; excludes transport and simulator"
+  },
+  "leak_check": {
+    "counts_by_split": {
+      "test": 0,
+      "train": 92,
+      "validation": 19
+    },
+    "episode_count": 111,
+    "problems": [],
+    "seeds_by_split": {
+      "test": 0,
+      "train": 92,
+      "validation": 19
+    }
+  },
+  "model": "linear latent baseline (pooled pixels + ridge dynamics); not LeWM",
+  "planning_smoke": {
+    "first_action": [
+      0.0,
+      0.0
+    ],
+    "selected_candidate": "stop_hold",
+    "selected_family": "stop",
+    "selection_reason": "minimum_score",
+    "top5": [
+      [
+        "stop_hold",
+        2.0249
+      ],
+      [
+        "push_v0p55_yawp0p00",
+        2.103
+      ],
+      [
+        "push_v0p55_yawp0p12",
+        2.1031
+      ],
+      [
+        "push_v0p55_yawm0p12",
+        2.1057
+      ],
+      [
+        "push_v0p40_yawp0p00",
+        2.1095
+      ]
+    ]
+  },
+  "prediction": {
+    "groups": {
+      "all": {
+        "1": {
+          "count": 665,
+          "latent_rmse_median": {
+            "matched": 0.0033070532971639865,
+            "shuffled": 0.003306351747855624
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.05859802403635718,
+            "kinematic": 0.0,
+            "model": 0.059990393398806935,
+            "persistence": 0.0,
+            "shuffled": 0.05981566952487507
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.0999953751134757,
+            "kinematic": 0.0313826872411904,
+            "model": 0.1274913167538306,
+            "persistence": 0.08195009231831371,
+            "shuffled": 0.12636480336856626
+          }
+        },
+        "2": {
+          "count": 665,
+          "latent_rmse_median": {
+            "matched": 0.005870052454815623,
+            "shuffled": 0.005856046689263238
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.05859802403635718,
+            "kinematic": 0.0,
+            "model": 0.06174903390398779,
+            "persistence": 0.0,
+            "shuffled": 0.06234969075343496
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.0999953751134757,
+            "kinematic": 0.05733221843351642,
+            "model": 0.20272989551080833,
+            "persistence": 0.1642343831043127,
+            "shuffled": 0.20307083589183994
+          }
+        },
+        "4": {
+          "count": 665,
+          "latent_rmse_median": {
+            "matched": 0.00999607189931104,
+            "shuffled": 0.00998861132712839
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.058948333859987,
+            "kinematic": 0.0,
+            "model": 0.07320719085995803,
+            "persistence": 0.0,
+            "shuffled": 0.07395795103279335
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.09928906325574376,
+            "kinematic": 0.09336325301890788,
+            "model": 0.3678558852232009,
+            "persistence": 0.3273093251924388,
+            "shuffled": 0.3669256608585444
+          }
+        },
+        "6": {
+          "count": 665,
+          "latent_rmse_median": {
+            "matched": 0.01245224448561203,
+            "shuffled": 0.012468741966744223
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.059162306137141095,
+            "kinematic": 9.93129189996722e-17,
+            "model": 0.08691871061121172,
+            "persistence": 9.93129189996722e-17,
+            "shuffled": 0.08733993307638184
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.09974418442995178,
+            "kinematic": 0.1311518082377367,
+            "model": 0.5315857921908996,
+            "persistence": 0.48022915374062053,
+            "shuffled": 0.5304229551635529
+          }
+        }
+      },
+      "free": {
+        "1": {
+          "count": 475,
+          "latent_rmse_median": {
+            "matched": 0.0031501700911179186,
+            "shuffled": 0.0031388602973917447
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.05799540565426967,
+            "kinematic": 0.0,
+            "model": 0.055981687345309644,
+            "persistence": 0.0,
+            "shuffled": 0.05663435387791452
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.09452703592286511,
+            "kinematic": 0.02489538690021029,
+            "model": 0.12137820167053179,
+            "persistence": 0.08970384700861045,
+            "shuffled": 0.12154788526155143
+          }
+        },
+        "2": {
+          "count": 442,
+          "latent_rmse_median": {
+            "matched": 0.005550979831472086,
+            "shuffled": 0.005552680773678422
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.057240146225156815,
+            "kinematic": 0.0,
+            "model": 0.05759692776072421,
+            "persistence": 0.0,
+            "shuffled": 0.057567654971684014
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.09083102651374006,
+            "kinematic": 0.04478295362695296,
+            "model": 0.20188952971641747,
+            "persistence": 0.17510391352064972,
+            "shuffled": 0.20312261722460606
+          }
+        },
+        "4": {
+          "count": 404,
+          "latent_rmse_median": {
+            "matched": 0.00950532309411459,
+            "shuffled": 0.009495964336005377
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.05684245967274394,
+            "kinematic": 0.0,
+            "model": 0.06331610122439679,
+            "persistence": 0.0,
+            "shuffled": 0.06303232259904257
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.0848064880092082,
+            "kinematic": 0.06973131536822022,
+            "model": 0.3893352517536188,
+            "persistence": 0.3405722675420066,
+            "shuffled": 0.3875081463584741
+          }
+        },
+        "6": {
+          "count": 382,
+          "latent_rmse_median": {
+            "matched": 0.012049194267130917,
+            "shuffled": 0.012048007584482986
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.05672963380100238,
+            "kinematic": 0.0,
+            "model": 0.07268162419217344,
+            "persistence": 0.0,
+            "shuffled": 0.07483118620254095
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.08219171124028632,
+            "kinematic": 0.09568236097708512,
+            "model": 0.5738998266072218,
+            "persistence": 0.5069516458681651,
+            "shuffled": 0.5789634574299809
+          }
+        }
+      },
+      "interaction": {
+        "1": {
+          "count": 190,
+          "latent_rmse_median": {
+            "matched": 0.0038396641841230116,
+            "shuffled": 0.003836640583288845
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.060991584639900356,
+            "kinematic": 0.008533583157424775,
+            "model": 0.0688946785624214,
+            "persistence": 0.008533583157424775,
+            "shuffled": 0.06919607488401605
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.11653337333397504,
+            "kinematic": 0.06440031816101108,
+            "model": 0.14181261442089693,
+            "persistence": 0.07251257981466892,
+            "shuffled": 0.14025483220012328
+          }
+        },
+        "2": {
+          "count": 223,
+          "latent_rmse_median": {
+            "matched": 0.00639030160858866,
+            "shuffled": 0.006391495624231953
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.06212591356991712,
+            "kinematic": 0.011948413490933268,
+            "model": 0.07833734634489191,
+            "persistence": 0.011948413490933268,
+            "shuffled": 0.07893516667040967
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.12136748463007128,
+            "kinematic": 0.10763983736703481,
+            "model": 0.20363140430685508,
+            "persistence": 0.14578167059585087,
+            "shuffled": 0.20244263614613583
+          }
+        },
+        "4": {
+          "count": 261,
+          "latent_rmse_median": {
+            "matched": 0.010767261841609792,
+            "shuffled": 0.01074648361715712
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.06354768325630962,
+            "kinematic": 0.019164877586518313,
+            "model": 0.10835107820106928,
+            "persistence": 0.019164877586518313,
+            "shuffled": 0.10887768470712278
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.12364275267228009,
+            "kinematic": 0.18272534494381457,
+            "model": 0.353127777129053,
+            "persistence": 0.3099366349836724,
+            "shuffled": 0.35393216701070995
+          }
+        },
+        "6": {
+          "count": 283,
+          "latent_rmse_median": {
+            "matched": 0.013320202711681257,
+            "shuffled": 0.013293794793449871
+          },
+          "object_position_median_m": {
+            "encoded_real": 0.06438987831903914,
+            "kinematic": 0.02491345577247737,
+            "model": 0.12967236308129496,
+            "persistence": 0.02491345577247737,
+            "shuffled": 0.1298306863162948
+          },
+          "robot_position_median_m": {
+            "encoded_real": 0.12832133794059056,
+            "kinematic": 0.2536504270103427,
+            "model": 0.4922239655236261,
+            "persistence": 0.4519247299425796,
+            "shuffled": 0.4894066111074911
+          }
+        }
+      }
+    },
+    "horizons_blocks": [
+      1,
+      2,
+      4,
+      6
+    ],
+    "horizons_s": [
+      0.5,
+      1.0,
+      2.0,
+      3.0
+    ],
+    "nonfinite_rollouts": 0,
+    "window_count": 665
+  },
+  "predictor_alpha": {
+    "chosen": 1000.0,
+    "grouped_cv_rollout_rmse": {
+      "0.1": 0.026277290386467794,
+      "1": 0.023955031823998784,
+      "10": 0.01947557259792177,
+      "100": 0.015772805771125227,
+      "1000": 0.01285825996752495,
+      "10000": 0.014302094819003219
+    }
+  },
+  "predictor_kind": "linear_latent",
+  "readout_alpha": {
+    "chosen": 10.0,
+    "grouped_cv_scores_m": {
+      "0.1": 0.11265644766784226,
+      "1": 0.10085540911845836,
+      "10": 0.09703855296208855,
+      "100": 0.1446619470562322,
+      "1000": 0.3301306612225298,
+      "10000": 0.7006077499557288
+    }
+  },
+  "readout_train_fit": {
+    "count": 3772,
+    "object_position_mean_m": 0.023980684608695103,
+    "object_position_median_m": 0.013285657854753306,
+    "robot_position_mean_m": 0.05462025388534521,
+    "robot_position_median_m": 0.04788123818666047,
+    "robot_yaw_median_rad": 0.5325093228369762
+  },
+  "readout_validation_constant_mean": {
+    "count": 779,
+    "object_position_mean_m": 1.1323926200508774,
+    "object_position_median_m": 1.1820105932349363,
+    "robot_position_mean_m": 1.217352209643165,
+    "robot_position_median_m": 1.3071737594904322,
+    "robot_yaw_median_rad": 1.6791373520161743
+  },
+  "readout_validation_real_latents": {
+    "count": 779,
+    "object_position_mean_m": 0.15587369045267016,
+    "object_position_median_m": 0.05958389523449578,
+    "robot_position_mean_m": 0.263613578216612,
+    "robot_position_median_m": 0.09965842998999261,
+    "robot_yaw_median_rad": 1.4870842172585457
+  },
+  "split_id": "splits-7ae472b8826f",
+  "surprise": {
+    "calibration_samples": 760,
+    "in_sample_false_stop_fraction": 0.009210526315789473,
+    "note": "in-sample on calibration windows; held-out false stops are measured at G6/G7",
+    "quantile": 0.99,
+    "threshold": 0.020078932519301474
+  }
+}

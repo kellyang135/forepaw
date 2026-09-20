@@ -140,6 +140,21 @@ Do not write “looks good.” Include a number, trace, image reference, or expl
 - Decision / next discriminating test: strict-load a fresh MjLab wave, run baseline/cache and a two-batch overfit before any paid main training
 - Next owner and deadline: Person B after fresh data acceptance
 
+### 2026-09-20 — Direct-MjLab wave 120 G2/G3 — `20260920T084850Z-g2g3-mjlab-wave120`
+
+- Owner: Person B / ML
+- Source revision / dirty: plain run from clean `f3463e6`; auxiliary run from clean `343e7b4`
+- Config and bundle IDs: baseline `go2wm-bb43d84ca9973ca9`; plain LeWM `go2wm-cf7d5fc5e1b30062`; auxiliary diagnostic `go2wm-6f4a5b1da045ddb0`
+- Dataset/split IDs: 92 training and 19 validation episodes from the frozen `splits-7ae472b8826f`; reserved test seeds were not accessed
+- Command: strict audit and lossless caches, pooled-pixel baseline, 1,150-step plain LeWM training/evaluation, then one three-epoch training-only state-auxiliary diagnostic
+- Expected criterion: real-latent readouts beat constant mean, learned one-step prediction beats persistence, matched actions beat shuffled actions, and all rollouts remain finite
+- Observed result: data checks passed; plain G2 passed marginally (robot 1.281 m vs 1.307 m mean, object 1.086 m vs 1.182 m), but G3 failed (robot one-step 1.236 m vs 0.082 m persistence and matched-vs-shuffled +0.022%). The auxiliary diagnostic worsened robot readout to 1.302 m and action dependence to -0.99%; it was rejected.
+- Evidence path: `artifacts/runs/20260920T084850Z-g2g3-mjlab-wave120/`
+- Status: G3 failed; fallback F3 is active; no learned controller is approved for execution
+- Known confounds: full G1 and both-owner sign-off remain open; raw data, caches, and weight files remain on local non-iCloud storage and must be copied to durable external storage
+- Decision / next discriminating test: run only the predeclared short multistep predictor fine-tune (P-010); if it fails, freeze model work and complete the F3 dataset/instrumentation delivery
+- Next owner and deadline: Person B for P-010; both owners before any learned-control claim
+
 ## 4. G0 simulator feasibility procedure
 
 Owner: SIM. Witness: ML for at least one complete pass.

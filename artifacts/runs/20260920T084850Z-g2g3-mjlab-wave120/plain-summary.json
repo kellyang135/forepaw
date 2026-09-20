@@ -1,0 +1,9 @@
+{
+  "best": "epoch_009.pt",
+  "best_val_pred_loss": 0.010526464398329457,
+  "finished_at_utc": "2026-09-20T08:48:50+00:00",
+  "global_step": 1150,
+  "last": "epoch_010.pt",
+  "stopped_early": false,
+  "wall_seconds": 1521.6835568749812
+}

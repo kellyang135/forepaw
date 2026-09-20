@@ -1,0 +1,11 @@
+Auxiliary implementation verification, clean source 343e7b4
+
+- Ruff: all checks passed.
+- tests/test_lewm_cache.py plus auxiliary gradient-mask test: 12 passed.
+- train -> resume -> evaluate -> bundle reload auxiliary test: 1 passed.
+- complete tests/test_lewm_torch.py: 8 passed, 1 optional-environment warning.
+- tests/test_learning_models.py: 19 passed; six known NumPy/Accelerate
+  warnings originated in test fixture matrix generation, not production code.
+
+The tests establish software contracts and pinned upstream compatibility only.
+Task performance is reported separately and failed G3.

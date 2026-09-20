@@ -1,0 +1,43 @@
+{
+  "schema": "go2wm.collection-summary.v1",
+  "run_id": "20260920T082200Z-mjlab-wave120-train-interaction-supplement",
+  "backend": "mujoco",
+  "controller_id": "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat",
+  "collection_policy": "scripted-collection-policy-v1",
+  "mode_weights": {
+    "push": 0.25,
+    "resist": 0.15,
+    "detour": 0.25,
+    "free": 0.35
+  },
+  "split_id": "splits-7ae472b8826f",
+  "blocks_per_episode": 40,
+  "total_blocks": 600,
+  "interaction_fraction": 0.4983,
+  "interaction_target": [
+    0.2,
+    0.3
+  ],
+  "interaction_in_target": false,
+  "wall_s": 8.7,
+  "blocks_per_wall_s": 68.6,
+  "by_mode": {
+    "push": {
+      "episodes": 10,
+      "split_train": 10,
+      "end_fixed_length": 10,
+      "blocks": 400,
+      "contact_blocks": 203,
+      "stop_blocks": 34
+    },
+    "resist": {
+      "episodes": 5,
+      "split_train": 5,
+      "end_fixed_length": 5,
+      "blocks": 200,
+      "contact_blocks": 96,
+      "stop_blocks": 21
+    }
+  },
+  "evidence_scope": "collection run"
+}

@@ -1,0 +1,66 @@
+{
+  "schema": "go2wm.collection-summary.v1",
+  "run_id": "20260920T081500Z-mjlab-wave120",
+  "backend": "mujoco",
+  "controller_id": "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat",
+  "collection_policy": "scripted-collection-policy-v1",
+  "mode_weights": {
+    "push": 0.25,
+    "resist": 0.15,
+    "detour": 0.25,
+    "free": 0.35
+  },
+  "split_id": "splits-7ae472b8826f",
+  "blocks_per_episode": 40,
+  "total_blocks": 3840,
+  "interaction_fraction": 0.2065,
+  "interaction_target": [
+    0.2,
+    0.3
+  ],
+  "interaction_in_target": true,
+  "wall_s": 54.5,
+  "blocks_per_wall_s": 70.5,
+  "by_mode": {
+    "_skipped": {
+      "test_seed": 24
+    },
+    "free": {
+      "episodes": 35,
+      "split_train": 29,
+      "end_fixed_length": 35,
+      "blocks": 1400,
+      "stop_blocks": 186,
+      "contact_blocks": 159,
+      "split_validation": 6
+    },
+    "push": {
+      "episodes": 22,
+      "split_train": 17,
+      "end_fixed_length": 22,
+      "blocks": 880,
+      "stop_blocks": 72,
+      "contact_blocks": 386,
+      "split_validation": 5
+    },
+    "detour": {
+      "episodes": 26,
+      "split_train": 21,
+      "end_fixed_length": 26,
+      "blocks": 1040,
+      "stop_blocks": 79,
+      "split_validation": 5,
+      "contact_blocks": 81
+    },
+    "resist": {
+      "episodes": 13,
+      "split_train": 10,
+      "end_fixed_length": 13,
+      "blocks": 520,
+      "contact_blocks": 167,
+      "stop_blocks": 43,
+      "split_validation": 3
+    }
+  },
+  "evidence_scope": "collection run"
+}

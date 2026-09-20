@@ -285,14 +285,14 @@ Template:
 
 ### D-031 — Permit one disclosed training-only state auxiliary after the plain LeWM G3 failure
 
-- Status: Implemented as an optional diagnostic; task-performance result pending
+- Status: Diagnostic completed and rejected; optional implementation retained
 - Date / gate: 2026-09-20 / G2-G3 repair
 - Owners acknowledging: ML implementation under the build specification; both human owners must acknowledge any final auxiliary-trained bundle
 - Decision: keep the reviewed LeWM prediction and SIGReg losses unchanged, and optionally add a small MLP loss from each RGB embedding to normalized robot pose and box positions. Fit normalization and gradients from aligned training-split labels only. Validation labels report the auxiliary loss but never update weights or normalization. The head is training-only and is not loaded by runtime planning.
 - Rationale: the 111-episode direct-MjLab wave passed alignment, visibility, coverage, leakage, and baseline learnability checks, but the plain 1,150-step LeWM run remained action-blind and its frozen linear readouts were far worse than the pooled-pixel baseline. The original build specification explicitly permits a modest supervised pose/object-position auxiliary after these checks fail.
 - Consequences: every auxiliary run records its weight, hidden width, target names, and train-only normalization in `run_config.json`; resume refuses a mismatch. Runtime inputs remain RGB plus action history and candidate actions. This changes one training component only; multistep loss is deferred until the auxiliary result is known. Any resulting encoder requires newly fitted readouts, surprise calibration, bundle ID, and full G2/G3 reevaluation.
-- Evidence: `src/go2wm/learning/lewm_train.py`, focused cache/gradient tests, and the real-run artifact to be retained after the diagnostic.
-- Supersedes / superseded by: resolves the next experiment for P-009; does not resolve P-010 or waive G3.
+- Evidence: `artifacts/runs/20260920T084850Z-g2g3-mjlab-wave120/`. In the three-epoch diagnostic, validation auxiliary loss worsened from 0.916 to 0.939, robot real-latent MAE worsened from 1.281 m to 1.302 m, object MAE improved to 0.985 m but remained far behind the 0.060 m visual baseline, and matched actions remained worse than shuffled actions.
+- Supersedes / superseded by: closes P-009 as rejected and advances to P-010; G3 remains failed and fallback F3 remains active.
 
 ## 3. Assumption register
 

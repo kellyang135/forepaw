@@ -16,7 +16,7 @@ evidence: nothing below is VERIFIED until a real-path run artifact exists
 | 3 | LeWM adaptation (2-D action, 3 frames, 0.5 s, 192-D) | `learning/lewm_model.py`, `lewm_adapter.py` | VERIFIED for local software compatibility; Go2 prediction quality remains unverified |
 | 3 | Lossless split-pure training caches | `learning/lewm_cache.py` | PROPOSED |
 | 3 | LeWM training loop (MPS/CUDA/CPU) | `learning/lewm_train.py` | PROPOSED: runs end to end on fake data; resume tested |
-| 3 | Optional training-only state auxiliary | `learning/lewm_train.py` | SOFTWARE-VERIFIED: train-only normalization, masked loss, resume, and bundle reload tested; real result pending |
+| 3 | Optional training-only state auxiliary | `learning/lewm_train.py` | SOFTWARE-VERIFIED; first real diagnostic rejected because robot readout and action conditioning did not improve |
 | 4 | Linear readouts on real and predicted latents | `learning/readouts.py` | PROPOSED: ridge penalty chosen by episode-grouped CV on train only |
 | 5 | Horizon metrics, free vs interaction, shuffled actions, baselines | `learning/prediction_eval.py`, `report.py` | PROPOSED |
 | 6 | Planner (64 candidates, scoring) | `planning/` (pre-existing) | PROPOSED; weights still defaults, not validation-tuned |

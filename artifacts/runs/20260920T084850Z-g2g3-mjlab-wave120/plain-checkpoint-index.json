@@ -1,0 +1,77 @@
+{
+  "best": "epoch_009.pt",
+  "best_val_pred_loss": 0.010526464398329457,
+  "checkpoints": {
+    "epoch_001.pt": {
+      "epoch": 1,
+      "sha256": "0252c6a8ef4a25da59c92dcdaa71ab5a21b107bcaed57de39eb97ae0c5d1e438",
+      "step": 115,
+      "val_loss": 0.4344948430856069,
+      "val_pred_loss": 0.02420364219384889
+    },
+    "epoch_002.pt": {
+      "epoch": 2,
+      "sha256": "cad84cc831189096e7f365ee27674ce7d6b0bfc5f21648b7fd06b82a65fae695",
+      "step": 230,
+      "val_loss": 0.4174474763373534,
+      "val_pred_loss": 0.018473247609411676
+    },
+    "epoch_003.pt": {
+      "epoch": 3,
+      "sha256": "409319d0fa7573f51155994a63ac504b8726a960ff042457e8035bdb9289385f",
+      "step": 345,
+      "val_loss": 0.3683012028535207,
+      "val_pred_loss": 0.014795474708080292
+    },
+    "epoch_004.pt": {
+      "epoch": 4,
+      "sha256": "0b7d0169be157cb4378e9e109dbe5438c32048c257d243ebdfcb671e37e2c717",
+      "step": 460,
+      "val_loss": 0.350312943259875,
+      "val_pred_loss": 0.01623883897749086
+    },
+    "epoch_005.pt": {
+      "epoch": 5,
+      "sha256": "114c5a997607d1e90b11aa05cc28b86d69cfa210f4e08e143282343bb8090298",
+      "step": 575,
+      "val_loss": 0.3250906392931938,
+      "val_pred_loss": 0.012401261172878245
+    },
+    "epoch_006.pt": {
+      "epoch": 6,
+      "sha256": "f82533ff29abed3e65ff5ceb21ed1545deea7f799130a8b0d0cd12ec0995a1d4",
+      "step": 690,
+      "val_loss": 0.3103749758253495,
+      "val_pred_loss": 0.011772018236418566
+    },
+    "epoch_007.pt": {
+      "epoch": 7,
+      "sha256": "84560604425de3db02189735f1599ab5a0b80b38423c5920376227ddacd7f5e5",
+      "step": 805,
+      "val_loss": 0.3304066136479378,
+      "val_pred_loss": 0.011313596662754813
+    },
+    "epoch_008.pt": {
+      "epoch": 8,
+      "sha256": "0eff13692a0c576b4b4c5a51ac6c69c8c9f33995c5ce6c0056a1acdad685a804",
+      "step": 920,
+      "val_loss": 0.3195237076530854,
+      "val_pred_loss": 0.01060665538534522
+    },
+    "epoch_009.pt": {
+      "epoch": 9,
+      "sha256": "269500460733838bfb7c94e0c52b36dad46e1b3b9400ff9bd0f8c15c0f951423",
+      "step": 1035,
+      "val_loss": 0.31320915060738724,
+      "val_pred_loss": 0.010526464398329457
+    },
+    "epoch_010.pt": {
+      "epoch": 10,
+      "sha256": "738c33283cbda88855c923443ba9b6cef0acfbd8af8ff834093f325dd2dd07c8",
+      "step": 1150,
+      "val_loss": 0.3263954675445954,
+      "val_pred_loss": 0.010858027555514127
+    }
+  },
+  "last": "epoch_010.pt"
+}
