@@ -14,6 +14,7 @@ def test_repository_g0_acceptance_is_valid_and_discloses_pending_ack() -> None:
 
     assert acceptance.status == "FROZEN_PENDING_COOWNER_ACK"
     assert not acceptance.coowner_acknowledged
+    assert acceptance.controller_id == "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat"
     assert acceptance.max_forward_mps == 0.6
     assert acceptance.resistant_max_displacement_m == 0.05
     assert acceptance.required_successes_of_five == 4

@@ -2,7 +2,7 @@ schema_version = 1
 status = "FROZEN_PENDING_COOWNER_ACK"
 accepted_by_project_lead_at_utc = "2026-09-20T06:20:00Z"
 coowner_acknowledged = false
-controller_id = "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat-iter10000"
+controller_id = "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat"
 policy_sha256 = "c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc"
 robot_xml_sha256 = "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912"
 
