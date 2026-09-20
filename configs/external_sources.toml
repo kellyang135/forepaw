@@ -1,5 +1,5 @@
 schema_version = 1
-status = "PINNED_WITH_UNVERIFIED_DIMOS"
+status = "PINNED_WITH_DIMOS_TRANSPORT_REHEARSAL"
 
 [lewm]
 repository = "https://github.com/lucas-maes/le-wm"
@@ -11,8 +11,8 @@ notes = "Verified from clean project revision 85d9bca with Python 3.10.19, torch
 [dimos]
 repository = "https://github.com/dimensionalOS/dimos"
 commit = "c1c3cdc9d2ee54ca72259465688395699d7d99a2"
-verified_locally = false
-notes = "Source-audited locally. Its current unitree_go2 simulation selection aliases to unitree_go1 and its model loader has no Go2 policy case, so it is not verified as a Go2 runtime."
+verified_locally = true
+notes = "Pinned source is verified locally as the Forepaw blueprint/MCP transport to the external true-Go2 MjLab controller service. Its built-in unitree_go2 simulation selection still aliases to unitree_go1 and is not Go2 evidence. The retained transport rehearsal uses a privileged reference model, so learned-model performance and full L7 remain unverified."
 
 [go2_model]
 source = "https://github.com/google-deepmind/mujoco_menagerie/tree/main/unitree_go2"

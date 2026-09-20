@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 import json
 import math
+import threading
+import time
 
 import pytest
 
@@ -199,3 +201,35 @@ def test_records_are_strict_json(tmp_path) -> None:
     sink.close()
     for line in sink.path.read_text(encoding="utf-8").splitlines():
         json.loads(line, parse_constant=lambda name: pytest.fail(f"non-finite {name}"))
+
+
+def test_external_stop_uses_runner_as_single_motion_publisher(tmp_path) -> None:
+    simulator, runner, sink, _, reset = build(tmp_path, threshold=10.0, max_blocks=30)
+    original = simulator.execute_block
+
+    def slow_block(action):
+        time.sleep(0.01)
+        return original(action)
+
+    simulator.execute_block = slow_block
+    result = []
+    thread = threading.Thread(
+        target=lambda: result.append(runner.run(reset, Goal2D(1.2, 0.0, 0.15)))
+    )
+    thread.start()
+    deadline = time.monotonic() + 2.0
+    while not runner.running and time.monotonic() < deadline:
+        time.sleep(0.001)
+    assert runner.request_stop("test_stop", timeout_s=2.0) is True
+    thread.join(timeout=2.0)
+    sink.close()
+    assert result and result[0].reason == "external_stop"
+    records = read_log(sink.path)
+    stop = next(record for record in records if record["type"] == "stop_executed")
+    assert stop["reason"] == "test_stop"
+    assert stop["requested_action"] == {
+        "forward_mps": 0.0,
+        "yaw_rate_rps": 0.0,
+        "duration_s": 0.5,
+    }
+    assert records[-1]["reason"] == "external_stop"

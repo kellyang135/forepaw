@@ -74,15 +74,15 @@ def build_dimos_skill_module(backend: ControllerBackend) -> object:
 
             return facade.imagine(candidate_commands)
 
-        @skill
+        @skill(uses=["movement"])
         def plan_to(self, x: float, y: float) -> str:
-            """Replan toward world-frame (x, y) and execute one 0.5-second block."""
+            """Run receding-horizon control toward world-frame (x, y)."""
 
             return facade.plan_to(x, y)
 
         @skill
-        def stop(self) -> str:
-            """Cancel the active plan and issue a zero motion command."""
+        def stop_motion(self) -> str:
+            """Cancel the active plan and issue a zero-velocity block."""
 
             return facade.stop()
 
@@ -92,9 +92,11 @@ def build_dimos_skill_module(backend: ControllerBackend) -> object:
 def _validate_candidate_commands(candidates: list[list[JsonObject]]) -> None:
     if not candidates:
         raise ValueError("candidate_commands must not be empty")
+    if len(candidates) > 64:
+        raise ValueError("candidate_commands must contain at most 64 candidates")
     for candidate_index, candidate in enumerate(candidates):
-        if not candidate:
-            raise ValueError(f"candidate {candidate_index} must contain at least one block")
+        if len(candidate) != 6:
+            raise ValueError(f"candidate {candidate_index} must contain exactly six blocks")
         for block_index, block in enumerate(candidate):
             if not isinstance(block, dict):
                 raise TypeError(
@@ -107,6 +109,12 @@ def _validate_candidate_commands(candidates: list[list[JsonObject]]) -> None:
                 if field not in block:
                     raise ValueError(f"action block is missing {field}")
                 _require_finite(field, block[field])
+            forward = float(block["forward_velocity_mps"])
+            yaw = float(block["yaw_rate_rps"])
+            if not 0.0 <= forward <= 0.6:
+                raise ValueError("forward_velocity_mps must be within [0.0, 0.6]")
+            if not -1.2 <= yaw <= 1.2:
+                raise ValueError("yaw_rate_rps must be within [-1.2, 1.2]")
             duration = block.get("duration_s", 0.5)
             _require_finite("duration_s", duration)
             if float(duration) != 0.5:
@@ -127,4 +135,3 @@ def _encode_result(value: JsonObject) -> str:
         return json.dumps(value, sort_keys=True, allow_nan=False)
     except (TypeError, ValueError) as error:
         raise TypeError(f"controller result is not JSON serializable: {error}") from error
-

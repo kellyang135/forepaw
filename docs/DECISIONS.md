@@ -294,6 +294,17 @@ Template:
 - Evidence: `artifacts/runs/20260920T084850Z-g2g3-mjlab-wave120/`. In the three-epoch diagnostic, validation auxiliary loss worsened from 0.916 to 0.939, robot real-latent MAE worsened from 1.281 m to 1.302 m, object MAE improved to 0.985 m but remained far behind the 0.060 m visual baseline, and matched actions remained worse than shuffled actions.
 - Supersedes / superseded by: closes P-009 as rejected and advances to P-010; G3 remains failed and fallback F3 remains active.
 
+### D-032 — Use dimOS as transport around the external true-Go2 controller service
+
+- Status: Implemented for a reference-model transport rehearsal; full L7 pending
+- Date / gate: 2026-09-20 / G5-L7 integration
+- Owners acknowledging: implementation by SIM track; second human owner pending
+- Decision: register `go2-world-model.forepaw` as an external dimOS blueprint. The dimOS module exposes `imagine`, `plan_to`, and `stop_motion` over MCP and calls a loopback JSON controller service. The service owns `ClosedLoopRunner` and is the sole process allowed to command the MjLab simulator. The built-in dimOS `unitree-go2` simulator remains excluded under D-017. `stop_motion` is used because dimOS reserves `Module.stop` for lifecycle shutdown.
+- Rationale: this provides substantive dimOS skill discovery, capability arbitration, MCP transport, and process orchestration without substituting Go1 or forcing dimOS and LeWM into one dependency environment.
+- Consequences: Linux uses the threaded service and must verify active stop preemption. macOS MuJoCo uses `mjpython --single-threaded`; that mode verifies transport but cannot accept a concurrent HTTP stop during an active plan. The privileged reference model remains rehearsal-only and cannot support learned-model claims.
+- Evidence: `artifacts/runs/20260920T090000Z-dimos-mjlab/verification/report.json`; successful dimOS/controller restart plus fresh plan; `docs/DIMOS_DEPLOYMENT.md`; focused software tests in `tests/test_controller_service.py` and `tests/test_runtime_loop.py`.
+- Supersedes / superseded by: implements the service-boundary option in D-016 and supplements D-017/D-030; it does not supersede their truthfulness limits.
+
 ### D-033 — Freeze learned-model work at fallback F3 after P-010
 
 - Status: Implemented; final fallback acknowledgement by both human owners pending

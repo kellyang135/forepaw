@@ -34,6 +34,10 @@ dev = [
 
 [project.scripts]
 go2wm = "go2wm.cli:main"
+go2wm-controller = "go2wm.integration.controller_service:main"
+
+[project.entry-points."dimos.blueprints"]
+forepaw = "go2wm.integration.dimos_module:forepaw_blueprint"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/go2wm"]

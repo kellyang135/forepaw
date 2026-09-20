@@ -329,6 +329,33 @@ class JsonlTelemetrySink:
             },
         )
 
+    def stop_executed(
+        self,
+        *,
+        block: int,
+        reason: str,
+        transition: BlockTransition,
+    ) -> dict[str, Any]:
+        """Record the zero-velocity block issued for an external stop request."""
+
+        end = transition.end_labels
+        return self.write(
+            "stop_executed",
+            {
+                "block": block,
+                "reason": reason,
+                "sim_start_s": _num(transition.start_observation.sim_time_s),
+                "sim_end_s": _num(transition.end_observation.sim_time_s),
+                "requested_action": _action(transition.requested_action),
+                "applied_action": _action(transition.action),
+                "observed_velocity": {
+                    "forward_mps": _num(end.forward_velocity_mps),
+                    "yaw_rate_rps": _num(end.yaw_rate_rps),
+                },
+                "ground_truth": {"end": _labels(end)},
+            },
+        )
+
     def run_end(self, *, reason: str, blocks: int, sim_time_s: float) -> dict[str, Any]:
         return self.write(
             "run_end", {"reason": reason, "blocks": blocks, "sim_time_s": _num(sim_time_s)}

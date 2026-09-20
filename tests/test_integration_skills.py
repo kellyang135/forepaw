@@ -20,6 +20,17 @@ class FakeBackend:
         return {"status": "stopped", "reason": reason}
 
 
+def candidate(*, duration_s: float = 0.5, forward: float = 0.2) -> list[dict]:
+    return [
+        {
+            "forward_velocity_mps": forward,
+            "yaw_rate_rps": 0.0,
+            "duration_s": duration_s,
+        }
+        for _ in range(6)
+    ]
+
+
 def test_skill_facade_returns_json_safe_strings() -> None:
     backend = FakeBackend()
     facade = WorldModelSkillFacade(backend)
@@ -33,9 +44,19 @@ def test_skill_facade_returns_json_safe_strings() -> None:
 def test_imagine_rejects_wrong_action_duration() -> None:
     facade = WorldModelSkillFacade(FakeBackend())
     with pytest.raises(ValueError, match=r"0\.5-second"):
-        facade.imagine(
-            [[{"forward_velocity_mps": 0.2, "yaw_rate_rps": 0.0, "duration_s": 1.0}]]
-        )
+        facade.imagine([candidate(duration_s=1.0)])
+
+
+def test_imagine_rejects_wrong_horizon_before_backend_call() -> None:
+    facade = WorldModelSkillFacade(FakeBackend())
+    with pytest.raises(ValueError, match="exactly six"):
+        facade.imagine([candidate()[:5]])
+
+
+def test_imagine_rejects_action_outside_frozen_envelope() -> None:
+    facade = WorldModelSkillFacade(FakeBackend())
+    with pytest.raises(ValueError, match="within"):
+        facade.imagine([candidate(forward=0.7)])
 
 
 def test_stop_reason_is_explicit() -> None:

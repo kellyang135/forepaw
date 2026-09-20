@@ -170,6 +170,21 @@ Do not write “looks good.” Include a number, trace, image reference, or expl
 - Decision / next discriminating test: none before release; stop model work under the hard cutoff and preserve the negative result
 - Next owner and deadline: both human owners acknowledge fallback F3 and copy large artifacts to durable storage before reboot
 
+### 2026-09-20 — dimOS MCP to true-Go2 MjLab rehearsal — `20260920T090000Z-dimos-mjlab`
+
+- Owner: Person A / SIM integration; second human owner sign-off pending
+- Source revision / dirty: project revision and dirty status captured in the generated report; pinned dimOS `c1c3cdc9d2ee54ca72259465688395699d7d99a2`, clean
+- Config and bundle IDs: MjLab policy SHA-256 `c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc`; reference bundle `reference-kinematic-v1`
+- Dataset/split IDs: none; integration rehearsal only
+- Command: external blueprint `go2-world-model.forepaw`, dimOS MCP calls, loopback controller service, true-Go2 MjLab simulator
+- Expected criterion: blueprint and tools discovered; valid/invalid serialization; `plan_to` returns bundle/candidate/action/scores; lock before motion; 64 candidates; 0.5-second first block; at least 20 cycles; stop surface acknowledged
+- Observed result: PASS for reference-model transport rehearsal — 45 cycles across six retained runs, all plan locks ordered before motion, 64 candidates per cycle, planner p50/p90/p95 2.661/3.015/8.233 ms; dimOS/controller process restart followed by a fresh plan also passed
+- Evidence path: `artifacts/runs/20260920T090000Z-dimos-mjlab/`
+- Status: `DIMOS_MJLAB_REFERENCE_REHEARSAL_PASS`; full L7 remains open
+- Known confounds: privileged reference model; physics paused during planning; macOS main-thread rendering required single-threaded service, so active stop preemption was not verified in this packet
+- Decision / next discriminating test: run the same blueprint on Linux with the published learned bundle, actively preempt a moving run, and retain the transport/model latency breakdown; process restart already passed
+- Next owner and deadline: SIM for Linux deployment; ML for bundle publication; before any public learned/dimOS task-performance claim
+
 ## 4. G0 simulator feasibility procedure
 
 Owner: SIM. Witness: ML for at least one complete pass.

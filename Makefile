@@ -1,4 +1,4 @@
-.PHONY: setup check test lint doctor smoke candidates protocol ml-smoke training-host-check ui-demo ui-baseline ui-serve
+.PHONY: setup check test lint doctor smoke candidates protocol ml-smoke training-host-check ui-demo ui-baseline ui-serve dimos-service dimos-smoke
 
 export PYTHONPATH := $(CURDIR)/src
 
@@ -39,3 +39,9 @@ ui-baseline:
 
 ui-serve:
 	uv run --no-sync python -m go2wm.ui serve --open
+
+dimos-service:
+	uv run --no-sync python -m go2wm.integration.controller_service --sim fake --model reference
+
+dimos-smoke:
+	uv run --no-sync pytest -q tests/test_controller_service.py tests/test_integration_skills.py

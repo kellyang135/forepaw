@@ -51,8 +51,9 @@ def _doctor() -> int:
         },
         "warnings": warnings,
         "truthfulness_note": (
-            "Core contracts are testable; Go2 physics, LeWM training, and dimOS "
-            "deployment remain unverified."
+            "Core contracts and a retained dimOS-to-true-Go2 transport rehearsal "
+            "exist; learned Go2 quality, active stop preemption, and final "
+            "task performance remain unverified."
         ),
     }
     print(json.dumps(report, indent=2, sort_keys=True))

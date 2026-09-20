@@ -7,16 +7,23 @@ block, observe the result, and replan.
 > **Current status:** the clean-source formal G0 trial suite passed every
 > technical check and the direct-MjLab G1A timing/data packet passed strict
 > reload and checksum verification. G0 remains pending the required second
-> human owner's sign-off, and full G1 remains open because the pinned dimOS
-> route substitutes Go1 rather than running the true Go2. The retained evidence
+> human owner's sign-off, and full G1 remains open because the retained G1A
+> collection packet did not traverse dimOS. The built-in pinned dimOS simulator
+> still substitutes Go1 and remains excluded. The retained evidence
 > is in
 > [`artifacts/runs/20260920T073000Z-g0-formal-mjlab/`](artifacts/runs/20260920T073000Z-g0-formal-mjlab/)
 > and
 > [`artifacts/runs/20260920T073500Z-g1a-mjlab/`](artifacts/runs/20260920T073500Z-g1a-mjlab/).
-> No learned Go2 world model or learned closed-loop task performance is verified.
+> A real pinned-dimOS blueprint/MCP rehearsal now also reaches the external
+> true-Go2 MjLab path; its retained packet is in
+> [`artifacts/runs/20260920T090000Z-dimos-mjlab/`](artifacts/runs/20260920T090000Z-dimos-mjlab/).
+> That run uses the explicitly labeled privileged reference model. No learned
+> Go2 world model or learned closed-loop task performance is verified, and full
+> L7 remains open until active stop preemption is verified on the target Linux
+> deployment; process restart has been exercised successfully.
 
-Latest full-tree local software verification (2026-09-20): **184 tests passed,
-15 skipped**; Ruff and all CLI/protocol smoke checks passed. The skips include
+Latest full-tree local software verification (2026-09-20): **201 tests passed,
+6 skipped**; Ruff and all CLI/protocol smoke checks passed. The skips include
 unavailable torch/LeWM, headless OpenGL, and environment-gated controller paths.
 These figures are software-contract evidence, not a passing Go2 simulator gate.
 
@@ -145,8 +152,16 @@ and replays it in the 3D viewer. The runner locks each plan to
 The project intentionally does not vendor LeWM or dimOS. Pin reviewed commits
 in `configs/external_sources.toml` before installation. The upstream LeWM
 instructions currently use Python 3.10 and `stable-worldmodel[train,env]`;
-dimOS exposes skills through `@skill` methods. Treat both integrations as
-unverified until the repository's real-path gates pass.
+dimOS exposes skills through `@skill` methods. Treat LeWM quality and complete
+dimOS deployment as unverified until their remaining real-path gates pass.
+
+Forepaw is registered as the external dimOS blueprint
+`go2-world-model.forepaw`. It exposes `imagine`, `plan_to`, and
+`stop_motion` through dimOS MCP while a loopback controller service remains the
+sole simulator motion publisher. See
+[`docs/DIMOS_DEPLOYMENT.md`](docs/DIMOS_DEPLOYMENT.md) for the exact startup and
+verification commands. The skill is named `stop_motion` because `Module.stop`
+is reserved for dimOS lifecycle shutdown.
 
 ## First checkpoint
 

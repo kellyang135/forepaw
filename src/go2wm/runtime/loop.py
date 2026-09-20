@@ -10,6 +10,7 @@ evaluation-side termination (goal reached, fall, out of bounds).
 from __future__ import annotations
 
 import math
+import threading
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -58,6 +59,10 @@ class BlockOutcome:
     surprise: SurpriseEvent
     planning_latency_s: float
     robot_prediction_error_m: float
+    bundle_id: str
+    selection_reason: str
+    score_total: float
+    score_parts: dict[str, float]
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +106,36 @@ class ClosedLoopRunner:
             raise LoopError("loop history does not match the model bundle")
         if abs(manifest.block_duration_s - simulator.block_duration_s) > 1e-9:
             raise LoopError("simulator block duration does not match the model bundle")
+        self._stop_requested = threading.Event()
+        self._stop_acknowledged = threading.Event()
+        self._running = threading.Event()
+        self._stop_reason = "external_stop"
+        self._stop_lock = threading.Lock()
+
+    @property
+    def running(self) -> bool:
+        """Whether a closed-loop run currently owns the simulator."""
+
+        return self._running.is_set()
+
+    def request_stop(self, reason: str = "skill_requested", *, timeout_s: float = 5.0) -> bool:
+        """Request a fail-closed stop and wait for the runner to apply zero velocity.
+
+        The simulator adapter is synchronous, so an in-flight 0.5-second block
+        finishes before the zero block is applied.  No second caller writes to
+        the simulator; the runner remains the sole motion publisher.
+        """
+
+        if not reason.strip():
+            raise ValueError("stop reason must not be empty")
+        if timeout_s < 0:
+            raise ValueError("timeout_s must be non-negative")
+        if not self._running.is_set():
+            return False
+        with self._stop_lock:
+            self._stop_reason = reason
+        self._stop_requested.set()
+        return self._stop_acknowledged.wait(timeout_s)
 
     def run(
         self,
@@ -109,8 +144,14 @@ class ClosedLoopRunner:
         *,
         perturb: Perturbation | None = None,
     ) -> LoopSummary:
+        if self._running.is_set():
+            raise LoopError("closed-loop runner already has an active run")
+        self._stop_requested.clear()
+        self._stop_acknowledged.clear()
+        self._running.set()
         report = self.simulator.reset(reset)
         if not report.settled:
+            self._running.clear()
             raise LoopError(f"episode {reset.episode_id!r} did not settle after reset")
         observations: list[RGBObservation] = [report.final_observation]
         commands: list[ActionCommand] = []
@@ -152,6 +193,11 @@ class ClosedLoopRunner:
         reason = "max_blocks"
         sim_time = observations[-1].sim_time_s
         for block in range(self.config.max_blocks):
+            if self._stop_requested.is_set():
+                stopped = self._apply_requested_stop(block)
+                sim_time = stopped.end_observation.sim_time_s
+                reason = "external_stop"
+                break
             n = self.config.history_frames
             model_input = ModelInput(
                 observations=tuple(observations[-n:]),
@@ -210,12 +256,29 @@ class ClosedLoopRunner:
                     surprise=event,
                     planning_latency_s=latency,
                     robot_prediction_error_m=error,
+                    bundle_id=plan.bundle_id,
+                    selection_reason=plan.selection_reason,
+                    score_total=plan.selected.score.total,
+                    score_parts={
+                        "goal": weights.goal_distance * plan.selected.score.goal_term_m,
+                        "risk": weights.failure_risk
+                        * plan.selected.score.maximum_failure_risk,
+                        "stall": weights.stall * plan.selected.score.lack_of_progress_m,
+                        "effort": weights.control_effort
+                        * plan.selected.score.control_effort,
+                        "change": weights.command_change * plan.selected.score.command_change,
+                    },
                 )
             )
             previous = plan.first_action
 
             moved = plan.first_action.forward_mps != 0.0 or plan.first_action.yaw_rate_rps != 0.0
             idle = 0 if moved or plan.selection_reason != "minimum_score" else idle + 1
+            if self._stop_requested.is_set():
+                stopped = self._apply_requested_stop(block + 1)
+                sim_time = stopped.end_observation.sim_time_s
+                reason = "external_stop"
+                break
             if event.stop_commanded or self.guard.alarm_latched:
                 reason = "surprise_stop"
                 break
@@ -234,4 +297,18 @@ class ClosedLoopRunner:
 
         if self.sink is not None:
             self.sink.run_end(reason=reason, blocks=len(outcomes), sim_time_s=sim_time)
+        self._running.clear()
+        if self._stop_requested.is_set():
+            self._stop_acknowledged.set()
         return LoopSummary(reason=reason, blocks=tuple(outcomes), sim_time_s=sim_time)
+
+    def _apply_requested_stop(self, block: int) -> Any:
+        with self._stop_lock:
+            reason = self._stop_reason
+        transition = self.simulator.execute_block(
+            ActionCommand.stopped(self.simulator.block_duration_s)
+        )
+        if self.sink is not None:
+            self.sink.stop_executed(block=block, reason=reason, transition=transition)
+        self._stop_acknowledged.set()
+        return transition
