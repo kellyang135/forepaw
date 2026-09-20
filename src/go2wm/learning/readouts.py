@@ -105,12 +105,30 @@ def ridge_fit(features: np.ndarray, targets: np.ndarray, *, alpha: float) -> np.
     design = np.hstack([features, np.ones((len(features), 1))])
     penalty = alpha * np.eye(design.shape[1])
     penalty[-1, -1] = 0.0
-    gram = design.T @ design + penalty
-    return np.linalg.solve(gram, design.T @ targets)
+    # Apple's Accelerate-backed BLAS can leave floating-point status flags set
+    # after an otherwise finite matmul. NumPy 2.x turns those stale flags into
+    # divide/overflow warnings. Suppress the backend flags here, then enforce
+    # the contract directly on every computed array instead of hiding a real
+    # nonfinite fit.
+    with np.errstate(all="ignore"):
+        gram = design.T @ design + penalty
+        rhs = design.T @ targets
+    if not (np.isfinite(gram).all() and np.isfinite(rhs).all()):
+        raise FloatingPointError("ridge normal equations are nonfinite")
+    weights = np.linalg.solve(gram, rhs)
+    if not np.isfinite(weights).all():
+        raise FloatingPointError("ridge solution is nonfinite")
+    return weights
 
 
 def ridge_predict(weights: np.ndarray, features: np.ndarray) -> np.ndarray:
-    return features @ weights[:-1] + weights[-1]
+    if not (np.isfinite(weights).all() and np.isfinite(features).all()):
+        raise ValueError("ridge prediction inputs must be finite")
+    with np.errstate(all="ignore"):
+        prediction = features @ weights[:-1] + weights[-1]
+    if not np.isfinite(prediction).all():
+        raise FloatingPointError("ridge prediction is nonfinite")
+    return prediction
 
 
 @dataclass(frozen=True, slots=True)

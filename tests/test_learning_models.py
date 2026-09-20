@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import warnings
 from pathlib import Path
 
 import pytest
@@ -41,6 +42,8 @@ from go2wm.learning.readouts import (  # noqa: E402
     TargetSpec,
     fit_linear_readout,
     readout_errors,
+    ridge_fit,
+    ridge_predict,
 )
 from go2wm.learning.windows import episode_windows  # noqa: E402
 from go2wm.model import ActionBlock, BundleCompatibilityError  # noqa: E402
@@ -73,6 +76,26 @@ def test_linear_readout_recovers_a_linear_latent_code() -> None:
     assert math.isclose(decoded.robot.yaw_rad, states[3, 2], abs_tol=1e-3)
     clone = LinearLatentReadout.from_dict(json.loads(json.dumps(readout.to_dict())))
     assert np.allclose(clone.predict_targets(latents[:5]), readout.predict_targets(latents[:5]))
+
+
+def test_ridge_fit_rejects_nonfinite_results_without_spurious_blas_warnings() -> None:
+    rng = np.random.default_rng(4)
+    features = rng.normal(size=(246, 192))
+    targets = rng.normal(size=(246, 9))
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        weights = ridge_fit(features, targets, alpha=0.1)
+        predictions = ridge_predict(weights, features)
+
+    assert np.isfinite(weights).all()
+    assert np.isfinite(predictions).all()
+    assert not [item for item in caught if issubclass(item.category, RuntimeWarning)]
+
+    bad = features.copy()
+    bad[0, 0] = np.inf
+    with pytest.raises(ValueError, match="finite"):
+        ridge_fit(bad, targets, alpha=0.1)
 
 
 def test_pooled_encoder_matches_latent_contract() -> None:
