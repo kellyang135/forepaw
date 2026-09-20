@@ -2,7 +2,7 @@
 
 ## 1. Scope
 
-This protocol distinguishes “implemented” from “verified.” All thresholds are **PROPOSED** until the G1 data-contract freeze unless otherwise marked. The repository now retains a completed CUDA Go2-controller training/export run at [`artifacts/runs/20260920T034139Z-go2-controller-training/`](../artifacts/runs/20260920T034139Z-go2-controller-training/). That evidence verifies the pinned training and export path only. Checkpoint playback, ONNX simulator playback, project-scene locomotion, trained-model quality, CUDA latency, G0, and dimOS remain unverified.
+This protocol distinguishes “implemented” from “verified.” Thresholds remain **PROPOSED** until the required two-owner freeze unless otherwise marked. The repository retains the completed CUDA controller training/export, checkpoint playback, ONNX adapter playback, cross-simulator comparison, and strict controller handoff. A clean-source formal G0 trial suite passed all technical criteria at [`artifacts/runs/20260920T073000Z-g0-formal-mjlab/`](../artifacts/runs/20260920T073000Z-g0-formal-mjlab/), but its status is `FORMAL_TRIALS_PASS_PENDING_COOWNER_SIGNOFF`. The direct-MjLab G1A timing/data packet at [`artifacts/runs/20260920T073500Z-g1a-mjlab/`](../artifacts/runs/20260920T073500Z-g1a-mjlab/) passed strict verification and outer checksums. Full G1, LeWM-on-Go2 quality, learned planning, CUDA inference latency, and dimOS deployment remain unverified.
 
 The final report must separate:
 

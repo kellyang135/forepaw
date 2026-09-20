@@ -95,6 +95,36 @@ Do not write “looks good.” Include a number, trace, image reference, or expl
 - Decision / next discriminating test: rerun the same preflight on the supplied Linux/NVIDIA host; proceed only on PASS
 - Next owner and deadline: Person A; immediately after training-host access is supplied
 
+### 2026-09-20 — G0 formal technical trials — `20260920T073000Z-g0-formal-mjlab`
+
+- Owner: Person A / SIM execution; second human owner sign-off pending
+- Source revision / dirty: `756cb3c0547da3568ddf4ec93440d00ba3664c33`; clean sparse checkout
+- Config and bundle IDs: `configs/g0_acceptance.toml` SHA-256 `786692931733ff71016db323ee5eb89b79dadda1aa0246e844046b172ccfdf04`; MjLab policy SHA-256 `c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc`
+- Dataset/split IDs: none
+- Command: clean-source `scripts/run_g0_trials.py --controller mjlab ... --acceptance configs/g0_acceptance.toml`
+- Expected criterion: all six frozen technical checks true; artifact must remain pending sign-off unless both owners acknowledge
+- Observed result: PASS — 5/5 movable pushes (1.2292–1.6029 m), 5/5 resistant holds (0.0327–0.0448 m), zero falls, 10/10 settled resets, 2,696 camera/goal-region points checked with zero outside, 50.65 blocks/wall-second
+- Evidence path: `artifacts/runs/20260920T073000Z-g0-formal-mjlab/`
+- Status: `FORMAL_TRIALS_PASS_PENDING_COOWNER_SIGNOFF`
+- Known confounds: resistant-box worst case is only 5.2 mm below the accepted limit; goal coverage is geometric because the public goal input is not rendered into model pixels
+- Decision / next discriminating test: second owner reviews the exact thresholds and retained images, then acknowledges or rejects without editing this run
+- Next owner and deadline: second human owner; before bulk collection is accepted
+
+### 2026-09-20 — G1A direct-MjLab data contract — `20260920T073500Z-g1a-mjlab`
+
+- Owner: Person A / SIM producer; Person B and second human visual sign-off pending
+- Source revision / dirty: `756cb3c0547da3568ddf4ec93440d00ba3664c33`; clean
+- Config and bundle IDs: controller handoff `20260920T045422Z-go2-controller-handoff`; scene `go2wm-push-detour-draft-v0-7b54a57edcf0`; camera `overhead_v1`
+- Dataset/split IDs: `splits-7ae472b8826f`; role seeds alignment 3, push 5, resist 18; test seeds 377–400 reserved
+- Command: `scripts/collect_g1_packet.py` through `mjpython`, followed by independent `scripts/verify_g1_packet.py`
+- Expected criterion: three exact 20-block episodes; 0.5 seconds and 100×5 ms samples per block; requested/applied equality; no fall/OOB; push/resist contact; transient contact aggregation; strict reload, montage, and outer checksums
+- Observed result: PASS for direct MjLab — all thirteen verifier checks true; push has 11 contact blocks, resist has 12, and five transient-contact examples were retained
+- Evidence path: `artifacts/runs/20260920T073500Z-g1a-mjlab/`
+- Status: VERIFIED for direct-MjLab G1A only; full G1 not verified
+- Known confounds: dimOS is explicitly `pending_g5_l7`; human montage sign-off has not been recorded
+- Decision / next discriminating test: review the ten-block montage, obtain both approvals, then use the copied split for a canary and fresh MjLab wave on non-iCloud storage
+- Next owner and deadline: both owners; before training on collected Go2 data
+
 ## 4. G0 simulator feasibility procedure
 
 Owner: SIM. Witness: ML for at least one complete pass.

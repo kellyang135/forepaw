@@ -28,6 +28,7 @@ class PlanningRequest:
     goal_xy: Point2D
     current_robot_xy: Point2D
     previous_action: ActionBlock | None = None
+    goal_radius_m: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +110,7 @@ class RecedingHorizonPlanner:
                     goal_xy=request.goal_xy,
                     initial_robot_xy=request.current_robot_xy,
                     previous_action=request.previous_action,
+                    goal_radius_m=request.goal_radius_m,
                 ),
             )
             for candidate in self.candidates

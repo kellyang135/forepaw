@@ -41,10 +41,36 @@ Runtime-visible values and privileged labels are kept apart: only
 
 ## What changes for the real Go2 path
 
-1. SIM's MuJoCo `SimulatorAdapter` replaces `DeterministicFakeSimulator` in
-   `record` (add a `--sim` choice once the adapter exists). Set `render_hints`
-   to `robot_scale: 1.0`, `box_size_m: 0.40`.
+1. Done (ML, 2026-09-20, draft adapter): `record --sim mujoco` runs the loop on
+   the MuJoCo Go2 (`--controller mjlab|rl_sar`), with MuJoCo-scale scenarios
+   `push`, `detour` and `anomaly` (the blue box silently becomes 20 kg after
+   block 2) and `render_hints` of `robot_scale: 1.0`, `box_size_m: 0.40`.
+   With SIM's trained MjLab policy (its `source/go2.xml` needs MjLab's 16
+   meshes in `source/assets/`, now present locally):
+
+   ```bash
+   C=artifacts/runs/20260920T034139Z-go2-controller-training
+   uv run --no-sync python -m go2wm.ui record --sim mujoco --model reference \
+     --controller mjlab --policy $C/policy/policy.onnx --robot-xml $C/source/go2.xml \
+     --deploy-yaml $C/config/deploy.yaml --scenario push --out runs/ui-mujoco-push-$(date -u +%Y%m%dT%H%M%SZ)
+   ```
 2. ML's published bundle replaces `--model reference` via `--bundle`.
 3. The dimOS `plan_to` skill should call `ClosedLoopRunner`, so the demo and
    the skill share one code path and one log.
-4. Fix D-028 before G4, or the controller will stall short of the goal.
+4. D-028 is fixed (see DECISIONS.md).
+
+## First MuJoCo rehearsal runs (2026-09-20)
+
+SIM's MjLab policy, reference model, surprise threshold 0.10 (hand-set for the
+reference model only; a learned bundle calibrates its own on validation data).
+
+| Scenario | Result | Evidence |
+| --- | --- | --- |
+| push | goal reached, 13 blocks; blue box contacted for 6 blocks and moved 1.08 m; red untouched | `runs/ui-mujoco-push/ui.jsonl` |
+| detour | goal reached, 14 blocks; no contact with either box | `runs/ui-mujoco-detour/ui.jsonl` |
+| anomaly | surprise stop at block 3 (0.122 > 0.10) on first contact with the silently heavy box | `runs/ui-mujoco-anomaly/ui.jsonl` |
+
+Normal runs peaked at 0.075. The rl_sar gait under the same reference model
+false-stopped at 0.103 on its first push, so this threshold does not transfer
+between gaits. These are rehearsals: the reference encoder reads simulator
+poses (D-004), so none of this is evidence about a learned model.

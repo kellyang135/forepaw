@@ -4,17 +4,20 @@ Predictive control for a simulated Unitree Go2: use a compact visual world model
 to compare push, detour, adjustment, and stop futures, execute one 0.5-second
 block, observe the result, and replan.
 
-> **Current status:** Gate G0 remains blocked pending checkpoint and ONNX
-> simulator playback plus the required motion trials. CUDA training/export at
-> the pinned upstream revision completed successfully; the final checkpoint,
-> self-contained ONNX export, configs, XML, and logs are retained in
-> [`artifacts/runs/20260920T034139Z-go2-controller-training/`](artifacts/runs/20260920T034139Z-go2-controller-training/).
-> This proves the training/export path, not gait quality, G0, task physics, or
-> dimOS deployment.
+> **Current status:** the clean-source formal G0 trial suite passed every
+> technical check and the direct-MjLab G1A timing/data packet passed strict
+> reload and checksum verification. G0 remains pending the required second
+> human owner's sign-off, and full G1 remains open because the pinned dimOS
+> route substitutes Go1 rather than running the true Go2. The retained evidence
+> is in
+> [`artifacts/runs/20260920T073000Z-g0-formal-mjlab/`](artifacts/runs/20260920T073000Z-g0-formal-mjlab/)
+> and
+> [`artifacts/runs/20260920T073500Z-g1a-mjlab/`](artifacts/runs/20260920T073500Z-g1a-mjlab/).
+> No learned Go2 world model or learned closed-loop task performance is verified.
 
-Latest full-tree local software verification (2026-09-20): **161 tests passed,
-17 skipped**; Ruff and all CLI/protocol smoke checks passed. The skips include
-unavailable optional dependencies, headless OpenGL, and real-controller paths.
+Latest full-tree local software verification (2026-09-20): **184 tests passed,
+15 skipped**; Ruff and all CLI/protocol smoke checks passed. The skips include
+unavailable torch/LeWM, headless OpenGL, and environment-gated controller paths.
 These figures are software-contract evidence, not a passing Go2 simulator gate.
 
 ## The two-person split

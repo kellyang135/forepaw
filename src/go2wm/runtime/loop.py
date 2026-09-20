@@ -165,6 +165,7 @@ class ClosedLoopRunner:
                     goal_xy=(goal.x_m, goal.y_m),
                     current_robot_xy=current_xy,
                     previous_action=previous,
+                    goal_radius_m=goal.radius_m,
                 )
             )
             latency = time.perf_counter() - started

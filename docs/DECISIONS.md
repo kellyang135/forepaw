@@ -252,12 +252,36 @@ Template:
 
 ### D-028 — Terminal-only goal distance stalls the planner near the goal (defect, owner ML)
 
-- Status: Proposed (defect recorded; fix not applied)
+- Status: Fixed by ML on 2026-09-20 (pending SIM acknowledgement); see Resolution below
 - Date / gate: 2026-09-19 / must be resolved before G4
 - Owners acknowledging: pending (ML owns `planning/scoring.py`)
 - Decision needed: `RolloutScorer` scores goal progress from the final predicted state only. Near the goal, `stop_then_creep` ends closest, so it wins, but its first block is zero motion and only the first block executes, so the robot never moves. Candidate fixes: use the minimum distance over the rollout, add a per-block discounted distance term, or exclude zero-first-block plans unless the safety policy selects them.
 - Evidence: `tests/test_runtime_loop.py::test_idle_planner_is_reported_as_stalled` reproduces it with the real planner; `test_short_goal_is_reached` is a strict xfail that will start failing, as a reminder, once the scorer is fixed.
 - Supersedes / superseded by: none.
+- Resolution (ML, 2026-09-20): the goal term is now the mean over the six predicted blocks of the distance outside the goal circle, and arrival is absorbing (a block that ends inside the circle, and every later block, costs 0, since the run ends there). Lack of progress uses the closest predicted approach, not the terminal state. `PlanningRequest.goal_radius_m` carries the radius; `ClosedLoopRunner` passes `goal.radius_m`; UI telemetry reports the goal part as `ScoreBreakdown.goal_term_m`, so parts still sum to the total. Evidence: the former xfail is now `test_goals_ahead_and_to_the_side_are_reached` (four goals, including the D-028 case, reached with no stop before the last block) and two scorer unit tests.
+- Remaining limit (candidate library, not scoring): a goal directly behind the robot still stalls, because the 64-candidate library has no turn-in-place plan and every U-turn first moves away from the goal. `test_idle_planner_is_reported_as_stalled` now uses that case to test the stall stop. Revisit at G4 with oracle rollouts before changing the library (D-008).
+
+### D-029 — Record the measured G0 envelope pending the second owner's acknowledgement
+
+- Status: Accepted by project lead; second-owner acknowledgement pending
+- Date / gate: 2026-09-20 / G0 formal rerun preparation
+- Owners acknowledging: project lead accepted after the resistant-box margin was disclosed; second human owner pending
+- Decision: use `configs/g0_acceptance.toml` as the exact configuration for a formal rerun. The action envelope is forward `[0.0, 0.6]` m/s and yaw `[-1.2, 1.2]` rad/s with zero lateral velocity. The equal-size 0.4 m boxes use friction 1.0, blue mass 1 kg with a 0.10 m displacement criterion, and red mass 20 kg with a 0.05 m maximum-displacement criterion, each requiring 4/5 trials. The 4 m square scene uses the 224 px `overhead_v1` camera. Resets must settle 10/10 under the recorded tolerances.
+- Rationale: the retained draft measurements passed every proposed G0 check. The narrowest result was the resistant box's 0.0448 m worst displacement against the 0.05 m limit, which was explicitly disclosed before the project lead asked work to continue.
+- Consequences: a clean-source rerun may report `FORMAL_TRIALS_PASS_PENDING_COOWNER_SIGNOFF`, but it may not report `FORMAL_G0_PASS` until the second owner acknowledges the boundary. The robot-front marker remains visible in the camera; the goal is a public runtime input and is not burned into model pixels. Camera geometry must still prove the complete declared goal region lies in frame.
+- Evidence: `configs/g0_acceptance.toml`; draft measurements in `artifacts/runs/20260920T043709Z-g0-trials-mjlab-draft-rerun/`; formal rerun artifact to be added.
+- Supersedes / superseded by: resolves P-001 through P-004 for the project lead, pending the required second-owner acknowledgement.
+
+### D-030 — Add a direct-MjLab G1A prerequisite without claiming the full dimOS G1 gate
+
+- Status: Implemented; real packet and joint visual sign-off pending
+- Date / gate: 2026-09-20 / before G1
+- Owners acknowledging: implementation by SIM track; second human owner pending
+- Decision: run a strict direct-MjLab packet before bulk collection. G1A uses the deployment-identical MjLab controller, scene, camera, action timing, and frozen master split. It requires three 20-block episodes, the exact alignment schedule, push and resistant-box contacts, one transient contact retained across the 0.5-second aggregation boundary, a self-contained ten-block montage, strict reload, and outer checksums.
+- Rationale: the pinned dimOS `unitree-go2` route substitutes Go1 and therefore cannot truthfully prove Go2 transport. Direct MjLab can close the collection/timing risk now without hiding the separate deployment blocker.
+- Consequences: passing G1A authorizes deployment-identical MjLab bulk collection only after visual review. It does not satisfy the original full G1 requirement that one packet traverse dimOS; that evidence remains due at G5/L7 through a true-Go2 route. The packet records `dimos_status=pending_g5_l7` everywhere.
+- Evidence: `src/go2wm/data/g1.py`, `scripts/collect_g1_packet.py`, `scripts/verify_g1_packet.py`, and the retained real packet to be added.
+- Supersedes / superseded by: supplements D-017; does not replace the original G1 dimOS criterion.
 
 ## 3. Assumption register
 

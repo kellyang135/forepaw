@@ -53,6 +53,7 @@ class AppearancePushPredictor:
     """Unicycle with lag; boxes move if their appearance is believed movable."""
 
     appearance: tuple[str, ...] = ("blue", "red")
+    contact_m: float = CONTACT_M
     model: UnicycleModel = field(default_factory=lambda: UnicycleModel(lag_time_constant_s=0.08))
 
     def rollout(self, history_latents, history_actions, candidate_actions):
@@ -79,9 +80,9 @@ class AppearancePushPredictor:
             for i, box in enumerate(boxes):
                 dx, dy = box[0] - x, box[1] - y
                 distance = math.hypot(dx, dy) or 1e-9
-                if distance >= CONTACT_M:
+                if distance >= self.contact_m:
                     continue
-                overlap = CONTACT_M - distance
+                overlap = self.contact_m - distance
                 if MOVABLE_APPEARANCE.get(self.appearance[i], False):
                     box[0] += dx / distance * overlap
                     box[1] += dy / distance * overlap
@@ -134,8 +135,12 @@ class ReferenceReadout:
         )
 
 
-def reference_bundle(simulator, *, threshold: float = 0.05):
-    """Return (ModelBundle, encoder, readout, SurpriseCalibration) for the fake scene."""
+def reference_bundle(simulator, *, threshold: float = 0.05, contact_m: float = CONTACT_M):
+    """Return (ModelBundle, encoder, readout, SurpriseCalibration).
+
+    ``contact_m`` is the robot-centre to box-centre distance at first contact:
+    0.31 m in the fake scene, about 0.55 m for the Go2 and 0.40 m boxes.
+    """
 
     manifest = BundleManifest(
         bundle_id="reference-kinematic-v1",
@@ -146,7 +151,7 @@ def reference_bundle(simulator, *, threshold: float = 0.05):
         surprise_calibration_version="hand-set-v1",
         latent_dim=LATENT_DIM,
     )
-    predictor = _RiskStrippingPredictor(AppearancePushPredictor())
+    predictor = _RiskStrippingPredictor(AppearancePushPredictor(contact_m=contact_m))
     readout = ReferenceReadout(predictor)
     encoder = SimulatorPoseEncoder(simulator)
     backend = ComponentWorldModelBackend(manifest, encoder, predictor, readout)

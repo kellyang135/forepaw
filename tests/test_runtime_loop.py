@@ -153,10 +153,12 @@ def test_surprise_alarm_stops_after_the_offending_block(tmp_path) -> None:
 
 
 def test_idle_planner_is_reported_as_stalled(tmp_path) -> None:
-    """A goal 0.4 m ahead: the terminal-distance score prefers stop_then_creep (D-028)."""
+    """A goal 0.8 m directly behind the robot: the 64-candidate library has no
+    turn-in-place plan, every U-turn first moves away, so the planner holds
+    still and the runner must report a stall (library limit recorded in D-028)."""
 
     _, runner, sink, _, reset = build(tmp_path, threshold=10.0, max_blocks=20)
-    summary = runner.run(reset, Goal2D(-0.6, 0.0, 0.2))
+    summary = runner.run(reset, Goal2D(-1.8, 0.0, 0.2))
     sink.close()
     assert summary.reason == "stalled"
     assert {b.candidate_id for b in summary.blocks[-4:]} <= {
@@ -168,12 +170,21 @@ def test_idle_planner_is_reported_as_stalled(tmp_path) -> None:
     assert summary.planning_latency_p50_s is not None
 
 
-@pytest.mark.xfail(strict=True, reason="D-028: terminal-only goal cost stalls near the goal")
-def test_short_goal_is_reached(tmp_path) -> None:
-    _, runner, sink, _, reset = build(tmp_path, threshold=10.0, max_blocks=20, log_name="b.jsonl")
-    summary = runner.run(reset, Goal2D(-0.6, 0.0, 0.2))
+@pytest.mark.parametrize(
+    "goal",
+    [
+        Goal2D(-0.6, 0.0, 0.2),  # D-028: 0.4 m ahead used to stall on stop_then_creep
+        Goal2D(1.2, 0.0, 0.15),
+        Goal2D(0.5, 0.8, 0.15),
+        Goal2D(-1.0, 1.0, 0.2),
+    ],
+)
+def test_goals_ahead_and_to_the_side_are_reached(tmp_path, goal) -> None:
+    _, runner, sink, _, reset = build(tmp_path, threshold=10.0, max_blocks=30, log_name="b.jsonl")
+    summary = runner.run(reset, goal)
     sink.close()
     assert summary.reason == "goal_reached"
+    assert all(b.first_action[0] > 0 for b in summary.blocks[:-1])  # no stop on the way
 
 
 def test_log_never_overwrites_existing_evidence(tmp_path) -> None:

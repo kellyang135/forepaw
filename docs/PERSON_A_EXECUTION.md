@@ -1,21 +1,22 @@
 # Person A Execution Status
 
-This is the audited status of the Simulation & Integration work after the 2026-09-19 execution pass. It distinguishes verified subcomponents from the still-blocked G0 gate.
+This is the audited status of the Simulation & Integration work through the 2026-09-20 clean-source G0/G1A runs. It distinguishes measured technical passes from the human sign-offs and deployment evidence still required.
 
 ## Outcome
 
-**Gate G0 is blocked.** The official Unitree Go2 MuJoCo model and a 224×224 RGB render work in the pinned project environment. No compatible true-Go2 gait/controller has been found or executed, so motion, box interaction, reset repeatability, collection throughput, and the dimOS production path cannot honestly pass yet.
+**The formal G0 technical trial suite passed; formal sign-off is pending the second owner.** The trained MjLab Go2 checkpoint and ONNX adapter passed playback and cross-simulator comparison. From clean revision `756cb3c`, the formal suite recorded 5/5 movable-box pushes, 5/5 resistant-box holds, no falls, 10/10 settled resets, and zero out-of-frame points across 2,696 robot/box/goal-region camera projections. Direct-MjLab G1A also passed. Full G1 remains open because no true-Go2 dimOS packet exists.
 
 | Area | Result | Evidence |
 | --- | --- | --- |
 | Project Python environment | PASS | Python 3.12.4; locked floor corrected to 3.10.12; NumPy and simulator extras resolved |
 | Official Go2 MJCF compile | PASS | 19 positions, 18 velocities, 12 actuators, 2 ms physics timestep |
 | 224×224 overhead-style RGB render | PASS | shape `[224, 224, 3]`, 2,965 unique RGB colors, retained PNG/checksum |
-| True-Go2 locomotion gait | BLOCKED | no controller attached; uncontrolled model loses 0.177 m base height over the 1 s model-only probe |
+| True-Go2 locomotion gait | PASS for MjLab adapter | checkpoint and ONNX playback plus clean formal trials; exact policy SHA retained |
 | Current dimOS Go2 simulator path | FAIL for Go2 evidence | pinned source rewrites `unitree_go2` to `unitree_go1`; loader supports Go1/G1 policies only |
 | Official Unitree RL Gym pretrained candidate | BLOCKED | pinned checkout contains G1, H1, and H1_2 `motion.pt` files, but no Go2 policy |
-| G0 motion/push/reset/throughput trials | NOT RUN | prohibited by the missing true-Go2 gait prerequisite |
-| G1 20-block timing/dimOS handoff | NOT RUN | G0 is not passed and current dimOS path is a surrogate |
+| G0 motion/push/reset/throughput trials | TECHNICAL PASS, SIGN-OFF PENDING | `20260920T073000Z-g0-formal-mjlab`; all six checks true; source clean |
+| G1 20-block timing packet | DIRECT-MJLAB PASS | `20260920T073500Z-g1a-mjlab`; three 20-block episodes; strict reload/checksums pass |
+| G1 dimOS traversal | BLOCKED | pinned dimOS Go2 selection remains a Go1 surrogate |
 
 ## Retained evidence
 
@@ -29,6 +30,9 @@ This is the audited status of the Simulation & Integration work after the 2026-0
 - `artifacts/runs/20260919T204000Z-controller-recovery-final/` — final controller-recovery software gate: 125 tests, Ruff, CLI/protocol checks, and 85.51% line coverage.
 - `artifacts/runs/20260919T205000Z-local-training-host-preflight/` — explicit local-host rejection: macOS arm64, Python 3.12, no NVIDIA device, and under 19 GiB free.
 - `artifacts/runs/20260919T210000Z-pre-baseline-final/` — expanded pre-baseline software gate: 133 tests, Ruff, CLI/protocol checks, and 85.67% line coverage.
+- `artifacts/runs/20260920T045422Z-go2-controller-handoff/` — strict controller packet with checkpoint, ONNX policy, exact XML/configs, playback reports, and checksums.
+- `artifacts/runs/20260920T073000Z-g0-formal-mjlab/` — clean-source formal G0 measurements; all technical checks pass, second-owner sign-off pending.
+- `artifacts/runs/20260920T073500Z-g1a-mjlab/` — direct-MjLab G1A packet, self-contained ten-block montage, independent verification, and outer checksums.
 
 The `artifacts/` tree is intentionally gitignored; copy these directories to durable team storage before cleaning this machine.
 
@@ -73,15 +77,13 @@ results.
 - The host is Apple Silicon macOS without NVIDIA/CUDA. It is suitable for CPU model and simulator integration, not the planned CUDA training path.
 - The final preflight measured roughly 18.6 GB free. Avoid full dimOS/data downloads or long replay collection until space is reclaimed or a separate artifact volume is configured.
 - MuJoCo rendering on macOS must run through `mjpython`; ordinary headless Python failed to create a CoreGraphics context.
-- The repository has no commit yet. Evidence records therefore say `NO_COMMIT`, and the entire scaffold is an uncommitted working tree. Create a reviewed baseline commit before a team handoff.
+- Formal G0/G1A evidence was generated from clean revision `756cb3c0547da3568ddf4ec93440d00ba3664c33`. Other dashboard/planner documentation edits remain in the working tree and must not be conflated with that evidence revision.
 
 ## Recovery path
 
-1. Train and play back `Unitree-Go2-Flat` at the pinned Unitree RL MjLab revision on a Linux/NVIDIA host, using its exact bundled Go2 XML.
-2. Build a small controller-only probe first: zero command for 10 simulated seconds, then bounded forward/left/right trials. Log base pose, fall state, requested/applied commands, and all substeps.
-3. Add the fixed task scene, two equal-geometry boxes, and a visible front marker. Repeat the 224×224 coverage inspection at all planned extrema.
-4. Complete all G0 repeats and thresholds from the runbook. Only measured stable bounds may enter configuration.
-5. Wire the validated adapter to dimOS. If dimOS cannot host the true model/controller, use its skill/transport layer around the external simulator and disclose that architecture.
-6. Produce the 20-block G1 packet and require Person B to load, visually inspect, and sign it before training begins.
-
-Until step 2 passes, the defensible fallback is F3: dataset/instrumentation and model/render infrastructure only. A Go1 surrogate demo must not be labeled Go2.
+1. Obtain the second owner's acknowledgement of `configs/g0_acceptance.toml` and visual review of the G1A montage; do not edit generated evidence in place.
+2. Keep full G1 open until a true-Go2 dimOS traversal exists. A Go1 surrogate demo must not be labeled Go2.
+3. Materialize and freeze evaluation starts and absolute G2/G3 targets before bulk data collection.
+4. Collect deployment-identical MjLab data with the retained split on non-iCloud storage, strict-load it, and back it up before training.
+5. Build the pinned LeWM environment outside iCloud, run the real-LeWM tests and tiny overfit, then benchmark one epoch before spending additional GPU credit.
+6. Continue through oracle candidate feasibility, learned ranking, held-out surprise, dimOS integration, and untouched final evaluation. Until those gates pass, the defensible fallback remains F3.

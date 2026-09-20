@@ -97,6 +97,21 @@ GO2_CONTROLLER_RECOVERY.md section 2). Cloud CPU, 2 cores, batch 16, about
   action influence (checked by test), so action use must be learned, and a
   few hundred CPU steps did not get there.
 
+**Cloud CPU run of the default control (2026-09-20): PASS.**
+1,080 train / 180 validation clips, batch 16, lr 5e-5, resumed after container
+restarts from `state_last.pt`. Gap between shuffled and real commands by epoch:
++0.6%, +1.5%, +3.1%, +3.8%, +5.8%, +5.0%, then **+30.9% at epoch 7** and
+**+59.5% at epoch 8** (val pred 0.059 vs shuffled 0.145; copy-last 0.123), and
+**+67.5% at epoch 9** (val pred 0.045 vs shuffled 0.139; copy-last 0.108); the
+AdaLN action-pathway norm grew every epoch (0.71 to 3.16). The unchanged
+training path (default lr 5e-5) does learn action-conditioned dynamics once it
+has had about 500 steps; the earlier near-zero gaps were too little training,
+not a pipeline fault. Verdict against the rule set before the run (gap in the
+tens of percent for several epochs, prediction well below copy-last, action
+pathway growing): **PASS** at epoch 9, 603 steps. The run was stopped there;
+checkpoints are cloud-only rehearsal artifacts and are not evidence about the
+Go2 task. Real data still has to show its own gap at G3.
+
 **Open question, to answer on the Mac before real data:** run the synthetic
 control for about 2,000 steps (30 epochs of the default 1,080 clips, roughly
 20-30 min on MPS). If the gap becomes
@@ -168,7 +183,9 @@ proposal in [GAIT_OPTIONS.md](GAIT_OPTIONS.md).
   exist until a Go2 controller walks and G1 passes. Person B found and probed a
   pretrained Go2 policy that walks and pushes on the Menagerie Go2 on CPU;
   proposal and measurements in [GAIT_OPTIONS.md](GAIT_OPTIONS.md) (D-020,
-  pending SIM).
+  pending SIM). Person B also drafted a MuJoCo `SimulatorAdapter` and task
+  scene that take either gait (rl_sar or SIM's MjLab policy) for SIM review:
+  [SIM_ADAPTER_DRAFT.md](SIM_ADAPTER_DRAFT.md).
 - **The repo lives in iCloud-synced `~/Documents` with Optimize Mac Storage.**
   Files were being evicted mid-session. Move the repo, datasets, and runs off
   iCloud before collecting data.

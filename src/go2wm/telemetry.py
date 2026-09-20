@@ -248,7 +248,7 @@ class JsonlTelemetrySink:
                     "family": item.rollout.family,
                     "total": _num(score.total),
                     "parts": {
-                        "goal": _num(weights.goal_distance * score.terminal_goal_distance_m),
+                        "goal": _num(weights.goal_distance * score.goal_term_m),
                         "risk": _num(weights.failure_risk * score.maximum_failure_risk),
                         "stall": _num(weights.stall * score.lack_of_progress_m),
                         "effort": _num(weights.control_effort * score.control_effort),
