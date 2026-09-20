@@ -1,0 +1,117 @@
+{
+  "camera_id": "overhead_v1",
+  "checks": {
+    "exact_alignment_schedule": true,
+    "half_second_blocks": true,
+    "no_fall_or_out_of_bounds": true,
+    "one_hundred_5ms_samples_per_block": true,
+    "requested_equals_applied": true,
+    "self_contained_ten_block_montage": true,
+    "split_leakage": true,
+    "stable_controller_scene_camera_policy": true,
+    "strict_loader_and_episode_checksums": true,
+    "terminal_fixed_length_only_at_19": true,
+    "three_predeclared_train_seeds": true,
+    "transient_contact_preserved": true,
+    "twenty_consecutive_valid_blocks_each": true
+  },
+  "controller_id": "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat-iter10000",
+  "dimos_status": "pending_g5_l7",
+  "episode_reports": {
+    "alignment": {
+      "blocks": 20,
+      "contact_blocks": 0,
+      "episode_id": "g1a-alignment-00003",
+      "seed": 3,
+      "termination": "fixed_length",
+      "transient_contact_blocks": []
+    },
+    "push": {
+      "blocks": 20,
+      "contact_blocks": 11,
+      "episode_id": "g1a-push-00005",
+      "seed": 5,
+      "termination": "fixed_length",
+      "transient_contact_blocks": [
+        13,
+        15
+      ]
+    },
+    "resist": {
+      "blocks": 20,
+      "contact_blocks": 12,
+      "episode_id": "g1a-resist-00018",
+      "seed": 18,
+      "termination": "fixed_length",
+      "transient_contact_blocks": [
+        11,
+        12,
+        16
+      ]
+    }
+  },
+  "packet_id": "20260920T073500Z-g1a-mjlab",
+  "passed": true,
+  "policy_sha256": "c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc",
+  "scene_id": "go2wm-push-detour-draft-v0-7b54a57edcf0",
+  "schema_version": "go2wm.g1a-verification.v1",
+  "scope": "direct_mjlab_data_contract; dimos_pending_g5_l7",
+  "split_id": "splits-7ae472b8826f",
+  "transient_contact_examples": [
+    {
+      "block_end_time_s": 9.34,
+      "block_index": 13,
+      "contact_sample_count": 79,
+      "contacted_object_ids": [
+        "light"
+      ],
+      "episode_id": "g1a-push-00005",
+      "last_contact_time_s": 9.245000000000001,
+      "role": "push"
+    },
+    {
+      "block_end_time_s": 10.34,
+      "block_index": 15,
+      "contact_sample_count": 2,
+      "contacted_object_ids": [
+        "light"
+      ],
+      "episode_id": "g1a-push-00005",
+      "last_contact_time_s": 9.85,
+      "role": "push"
+    },
+    {
+      "block_end_time_s": 8.36,
+      "block_index": 11,
+      "contact_sample_count": 72,
+      "contacted_object_ids": [
+        "resistant"
+      ],
+      "episode_id": "g1a-resist-00018",
+      "last_contact_time_s": 8.245000000000001,
+      "role": "resist"
+    },
+    {
+      "block_end_time_s": 8.86,
+      "block_index": 12,
+      "contact_sample_count": 6,
+      "contacted_object_ids": [
+        "resistant"
+      ],
+      "episode_id": "g1a-resist-00018",
+      "last_contact_time_s": 8.465,
+      "role": "resist"
+    },
+    {
+      "block_end_time_s": 10.86,
+      "block_index": 16,
+      "contact_sample_count": 16,
+      "contacted_object_ids": [
+        "resistant"
+      ],
+      "episode_id": "g1a-resist-00018",
+      "last_contact_time_s": 10.44,
+      "role": "resist"
+    }
+  ]
+}

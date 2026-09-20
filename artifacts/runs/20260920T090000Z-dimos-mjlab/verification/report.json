@@ -1,0 +1,145 @@
+{
+  "checks": {
+    "all_logs_execute_half_second_blocks": true,
+    "all_logs_lock_before_motion": true,
+    "all_logs_use_64_candidates": true,
+    "at_least_20_transport_planning_cycles": true,
+    "external_blueprint_loaded": true,
+    "imagine_reports_no_motion": true,
+    "invalid_imagine_failed_closed": true,
+    "module_map_correct": true,
+    "plan_to_returned_contract": true,
+    "process_restart_verified": true,
+    "required_tools_discovered": true,
+    "stop_surface_acknowledged": true,
+    "telemetry_present": true,
+    "true_go2_scope_labeled": true,
+    "valid_imagine_serialized": true
+  },
+  "created_at_utc": "2026-09-20T09:15:02+00:00",
+  "environment": {
+    "dimos_dirty": false,
+    "dimos_revision": "c1c3cdc9d2ee54ca72259465688395699d7d99a2",
+    "host": "KY-MBPM4-4.local",
+    "os": "macOS-26.6.2-arm64-arm-64bit",
+    "policy_sha256": "c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc",
+    "project_dirty": true,
+    "project_revision": "343e7b4dbc22db7908b8e47ccd46a45053cc7375",
+    "python": "3.12.4 (main, Jun  6 2024, 18:26:44) [Clang 15.0.0 (clang-1500.3.9.4)]",
+    "robot_xml_sha256": "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912"
+  },
+  "latency_s": {
+    "p50": 0.002661,
+    "p90": 0.003015,
+    "p95": 0.008233,
+    "physics_paused_during_planning": true,
+    "sample_count": 45
+  },
+  "mcp_modules": {
+    "modules": {
+      "ForepawSkills": [
+        "imagine",
+        "plan_to",
+        "stop_motion"
+      ],
+      "McpServer": [
+        "agent_send",
+        "list_modules",
+        "server_status"
+      ]
+    }
+  },
+  "mcp_status": {
+    "modules": [
+      "ForepawSkills",
+      "McpServer"
+    ],
+    "pid": 41482,
+    "skills": [
+      "imagine",
+      "plan_to",
+      "stop_motion",
+      "agent_send",
+      "list_modules",
+      "server_status"
+    ]
+  },
+  "planning_cycles": 45,
+  "schema": "go2wm.dimos-deployment-report.v1",
+  "status": "DIMOS_MJLAB_REFERENCE_REHEARSAL_PASS",
+  "telemetry": [
+    {
+      "all_candidate_counts_64": true,
+      "all_first_blocks_half_second": true,
+      "executed_blocks": 13,
+      "ordered_plan_lock_before_motion": true,
+      "path": "artifacts/runs/20260920T090000Z-dimos-mjlab/dimos-push-20260920T090214547695Z-001/ui.jsonl",
+      "planning_cycles": 13,
+      "run_reason": "goal_reached",
+      "run_scope": "dimOS integration rehearsal on true-Go2 MjLab simulation with a privileged reference model; not learned-model evidence",
+      "sha256": "b6038b897a4b27cd3313eadc551e6205b63a7d457885647b544eab215c36f31c"
+    },
+    {
+      "all_candidate_counts_64": true,
+      "all_first_blocks_half_second": true,
+      "executed_blocks": 13,
+      "ordered_plan_lock_before_motion": true,
+      "path": "artifacts/runs/20260920T090000Z-dimos-mjlab/dimos-push-20260920T090311578219Z-001/ui.jsonl",
+      "planning_cycles": 13,
+      "run_reason": "goal_reached",
+      "run_scope": "dimOS integration rehearsal on true-Go2 MjLab simulation with a privileged reference model; not learned-model evidence",
+      "sha256": "26aa2ac7e2b3e483b9c3c26e0e125d615f2e704628fb063f8a9762f5bd7d381e"
+    },
+    {
+      "all_candidate_counts_64": true,
+      "all_first_blocks_half_second": true,
+      "executed_blocks": 13,
+      "ordered_plan_lock_before_motion": true,
+      "path": "artifacts/runs/20260920T090000Z-dimos-mjlab/dimos-push-20260920T090537073444Z-004/ui.jsonl",
+      "planning_cycles": 13,
+      "run_reason": "goal_reached",
+      "run_scope": "dimOS integration rehearsal on true-Go2 MjLab simulation with a privileged reference model; not learned-model evidence",
+      "sha256": "8bdae5a625436b60adc21e7faaaf59bc622dfed9bfeb058964f5c8359d79bc79"
+    },
+    {
+      "all_candidate_counts_64": true,
+      "all_first_blocks_half_second": true,
+      "executed_blocks": 2,
+      "ordered_plan_lock_before_motion": true,
+      "path": "artifacts/runs/20260920T090000Z-dimos-mjlab/restart/dimos-push-20260920T091136706700Z-001/ui.jsonl",
+      "planning_cycles": 2,
+      "run_reason": "max_blocks",
+      "run_scope": "dimOS integration rehearsal on true-Go2 MjLab simulation with a privileged reference model; not learned-model evidence",
+      "sha256": "b7ae6d5a951fe02a28a29f28353d26a3f02e9bb5d55fcc85c4c29800ed150480"
+    },
+    {
+      "all_candidate_counts_64": true,
+      "all_first_blocks_half_second": true,
+      "executed_blocks": 2,
+      "ordered_plan_lock_before_motion": true,
+      "path": "artifacts/runs/20260920T090000Z-dimos-mjlab/restart/dimos-push-20260920T091423963902Z-003/ui.jsonl",
+      "planning_cycles": 2,
+      "run_reason": "max_blocks",
+      "run_scope": "dimOS integration rehearsal on true-Go2 MjLab simulation with a privileged reference model; not learned-model evidence",
+      "sha256": "639534bae2672a4b11b202f593bec59faf70aa4184876999dfa1a0706d124336"
+    },
+    {
+      "all_candidate_counts_64": true,
+      "all_first_blocks_half_second": true,
+      "executed_blocks": 2,
+      "ordered_plan_lock_before_motion": true,
+      "path": "artifacts/runs/20260920T090000Z-dimos-mjlab/restart/dimos-push-20260920T091502048786Z-005/ui.jsonl",
+      "planning_cycles": 2,
+      "run_reason": "max_blocks",
+      "run_scope": "dimOS integration rehearsal on true-Go2 MjLab simulation with a privileged reference model; not learned-model evidence",
+      "sha256": "d7367c745e822d37b142b0f3dea469316e5ea7f1af56ac33911ac40732359e65"
+    }
+  ],
+  "truthfulness": {
+    "dimos_transport_verified": true,
+    "full_l7_verified": false,
+    "learned_world_model_verified": false,
+    "note": "The model is the privileged kinematic reference. This packet verifies dimOS transport/orchestration and the true-Go2 simulator path, not learned prediction quality or final closed-loop task performance. Process restart was verified; active stop preemption remains unverified on macOS single-threaded rendering.",
+    "true_go2_mjlab_path": true
+  }
+}

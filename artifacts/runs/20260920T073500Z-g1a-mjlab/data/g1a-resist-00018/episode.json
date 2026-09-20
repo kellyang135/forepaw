@@ -1,0 +1,82 @@
+{
+  "block_count": 20,
+  "camera_id": "overhead_v1",
+  "episode_id": "g1a-resist-00018",
+  "goal": {
+    "radius_m": 0.25,
+    "x_m": -1.4112828758499498,
+    "y_m": 0.006829374021396495
+  },
+  "history_actions": [
+    {
+      "duration_s": 0.5,
+      "forward_velocity_mps": 0.0,
+      "yaw_rate_rps": 0.0
+    },
+    {
+      "duration_s": 0.5,
+      "forward_velocity_mps": 0.0,
+      "yaw_rate_rps": 0.0
+    }
+  ],
+  "initial_history_observation_ids": [
+    "g1a-resist-00018:frame:000000",
+    "g1a-resist-00018:frame:000001",
+    "g1a-resist-00018:frame:000002"
+  ],
+  "metadata": {
+    "adapter_controller_id": "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat",
+    "backend": "mujoco-mjlab-direct",
+    "collection_mode": "resist",
+    "collection_policy": "scripted-collection-policy-v1",
+    "controller_id": "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat-iter10000",
+    "dimos_status": "pending_g5_l7",
+    "g1_role": "resist",
+    "g1_scope": "direct_mjlab_data_contract; dimos_pending_g5_l7",
+    "policy_sha256": "c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc"
+  },
+  "reset": {
+    "final_labels": {
+      "fallen": false,
+      "forward_velocity_mps": 0.0016829878148100523,
+      "objects": [
+        {
+          "appearance_class": "blue",
+          "movable": true,
+          "object_id": "light",
+          "pose": {
+            "x_m": -0.40706684736176146,
+            "y_m": -0.02905940831063414,
+            "yaw_rad": 0.0
+          }
+        },
+        {
+          "appearance_class": "red",
+          "movable": false,
+          "object_id": "resistant",
+          "pose": {
+            "x_m": 0.9169045332777945,
+            "y_m": 1.115754375494503,
+            "yaw_rad": -6.093363831651821e-18
+          }
+        }
+      ],
+      "robot_pose": {
+        "x_m": -0.3866785883606123,
+        "y_m": 0.977771377431104,
+        "yaw_rad": 0.20905812782713354
+      },
+      "sim_time_s": 1.36,
+      "yaw_rate_rps": -0.0041563202855806084
+    },
+    "final_observation_id": "g1a-resist-00018:frame:000000",
+    "settle_duration_s": 1.36,
+    "settle_steps": 272,
+    "settled": true
+  },
+  "run_id": "20260920T073500Z-g1a-mjlab",
+  "scenario_seed": 18,
+  "scene_id": "go2wm-push-detour-draft-v0-7b54a57edcf0",
+  "schema_version": "go2wm.episode.v2",
+  "split": "train"
+}

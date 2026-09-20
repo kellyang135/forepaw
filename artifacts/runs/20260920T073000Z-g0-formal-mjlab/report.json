@@ -1,0 +1,569 @@
+{
+  "schema_version": "go2wm.g0-trials.v1",
+  "run_id": "20260920T073000Z-g0-formal-mjlab",
+  "recorded_at_utc": "2026-09-20T07:09:53.711337Z",
+  "status": "FORMAL_TRIALS_PASS_PENDING_COOWNER_SIGNOFF",
+  "scope": "formal G0 measurements; co-owner sign-off still required",
+  "source": {
+    "revision": "756cb3c0547da3568ddf4ec93440d00ba3664c33",
+    "dirty_tree": false,
+    "dirty_path_count": 0,
+    "relevant_files": {
+      "scripts/run_g0_trials.py": "55feb6fd92ea8a6296b0e1c7ae3514f6d52528a108a6ab5833ea3103de682f4f",
+      "src/go2wm/sim/locomotion.py": "96272568acf528d04b94260ad718a51f5b733726f3800f5878cdc4ceac89175f",
+      "src/go2wm/sim/mujoco_go2.py": "a511aeda3203f66e8dd90bfcabfd1bca48c9cc39f1e4d546ef6bc037ba3cc759",
+      "src/go2wm/sim/task_scene.py": "d4c79cef25b7781442a336d22da0d66fad3cbf0c92a1894d2f5dca8ede95f447"
+    }
+  },
+  "seed": 0,
+  "acceptance": {
+    "path": "/private/tmp/go2wm-g0-clean/configs/g0_acceptance.toml",
+    "sha256": "786692931733ff71016db323ee5eb89b79dadda1aa0246e844046b172ccfdf04",
+    "status": "FROZEN_PENDING_COOWNER_ACK",
+    "coowner_acknowledged": false
+  },
+  "checks": {
+    "free_motion_no_falls": true,
+    "light_box_displaced_4_of_5": true,
+    "resistant_box_holds_4_of_5": true,
+    "no_falls_while_pushing": true,
+    "camera_keeps_robot_and_boxes_in_frame": true,
+    "resets_settle": true
+  },
+  "controller": {
+    "id": "unitree_rl_mjlab-1425b15-Unitree-Go2-Flat",
+    "source": "https://github.com/unitreerobotics/unitree_rl_mjlab@1425b15f73bd4095f0df53709d7c389c3eb9e790:Unitree-Go2-Flat",
+    "policy_file": "policy.onnx",
+    "policy_sha256": "c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc",
+    "robot_xml_sha256": "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912",
+    "yaw_rate_trim_gain": 0.0
+  },
+  "scene_id": "go2wm-push-detour-draft-v0-7b54a57edcf0",
+  "config": {
+    "action_bounds": {
+      "forward_mps": [
+        0.0,
+        0.6
+      ],
+      "yaw_rate_rps": [
+        -1.2,
+        1.2
+      ]
+    },
+    "arena_m": [
+      4.0,
+      4.0
+    ],
+    "camera": {
+      "id": "overhead_v1",
+      "size_px": [
+        224,
+        224
+      ],
+      "fovy_deg": 60.0,
+      "height_m": 3.6373
+    },
+    "box_half_extent_m": 0.2,
+    "box_classes": {
+      "blue": {
+        "mass_kg": 1.0,
+        "movable": true
+      },
+      "red": {
+        "mass_kg": 20.0,
+        "movable": false
+      }
+    },
+    "physics_dt_s": 0.005,
+    "control_dt_s": 0.02
+  },
+  "free_motion": [
+    {
+      "trial": "stand",
+      "command": [
+        0.0,
+        0.0
+      ],
+      "blocks": 20,
+      "falls": 0,
+      "runs": [
+        {
+          "fell": false,
+          "forward_mps": -0.0,
+          "yaw_rate_rps": 0.0,
+          "displacement_m": 0.002,
+          "yaw_change_rad": 0.002
+        },
+        {
+          "fell": false,
+          "forward_mps": -0.0,
+          "yaw_rate_rps": -0.0,
+          "displacement_m": 0.003,
+          "yaw_change_rad": -0.003
+        },
+        {
+          "fell": false,
+          "forward_mps": -0.0,
+          "yaw_rate_rps": -0.0,
+          "displacement_m": 0.002,
+          "yaw_change_rad": -0.001
+        },
+        {
+          "fell": false,
+          "forward_mps": -0.0,
+          "yaw_rate_rps": -0.0,
+          "displacement_m": 0.003,
+          "yaw_change_rad": -0.002
+        },
+        {
+          "fell": false,
+          "forward_mps": -0.0,
+          "yaw_rate_rps": 0.0,
+          "displacement_m": 0.002,
+          "yaw_change_rad": -0.0
+        }
+      ]
+    },
+    {
+      "trial": "walk",
+      "command": [
+        0.6,
+        0.0
+      ],
+      "blocks": 8,
+      "falls": 0,
+      "runs": [
+        {
+          "fell": false,
+          "forward_mps": 0.545,
+          "yaw_rate_rps": -0.015,
+          "displacement_m": 2.085,
+          "yaw_change_rad": -0.054
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.545,
+          "yaw_rate_rps": -0.015,
+          "displacement_m": 2.087,
+          "yaw_change_rad": -0.06
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.544,
+          "yaw_rate_rps": -0.015,
+          "displacement_m": 2.087,
+          "yaw_change_rad": -0.062
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.543,
+          "yaw_rate_rps": -0.016,
+          "displacement_m": 2.079,
+          "yaw_change_rad": -0.08
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.544,
+          "yaw_rate_rps": -0.015,
+          "displacement_m": 2.086,
+          "yaw_change_rad": -0.061
+        }
+      ]
+    },
+    {
+      "trial": "turn left",
+      "command": [
+        0.0,
+        0.96
+      ],
+      "blocks": 8,
+      "falls": 0,
+      "runs": [
+        {
+          "fell": false,
+          "forward_mps": 0.022,
+          "yaw_rate_rps": 0.918,
+          "displacement_m": 0.038,
+          "yaw_change_rad": -2.634
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.022,
+          "yaw_rate_rps": 0.918,
+          "displacement_m": 0.039,
+          "yaw_change_rad": -2.646
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.022,
+          "yaw_rate_rps": 0.918,
+          "displacement_m": 0.036,
+          "yaw_change_rad": -2.635
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.021,
+          "yaw_rate_rps": 0.918,
+          "displacement_m": 0.046,
+          "yaw_change_rad": -2.663
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.022,
+          "yaw_rate_rps": 0.918,
+          "displacement_m": 0.038,
+          "yaw_change_rad": -2.633
+        }
+      ]
+    },
+    {
+      "trial": "turn right",
+      "command": [
+        0.0,
+        -0.96
+      ],
+      "blocks": 8,
+      "falls": 0,
+      "runs": [
+        {
+          "fell": false,
+          "forward_mps": 0.033,
+          "yaw_rate_rps": -0.892,
+          "displacement_m": 0.075,
+          "yaw_change_rad": 2.758
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.031,
+          "yaw_rate_rps": -0.893,
+          "displacement_m": 0.076,
+          "yaw_change_rad": 2.75
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.033,
+          "yaw_rate_rps": -0.891,
+          "displacement_m": 0.075,
+          "yaw_change_rad": 2.756
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.033,
+          "yaw_rate_rps": -0.892,
+          "displacement_m": 0.075,
+          "yaw_change_rad": 2.757
+        },
+        {
+          "fell": false,
+          "forward_mps": 0.033,
+          "yaw_rate_rps": -0.891,
+          "displacement_m": 0.074,
+          "yaw_change_rad": 2.751
+        }
+      ]
+    }
+  ],
+  "command_response_grid": [
+    {
+      "command": [
+        0.0,
+        -1.2
+      ],
+      "measured_forward_mps": 0.042,
+      "measured_yaw_rate_rps": -1.139,
+      "fell": false
+    },
+    {
+      "command": [
+        0.0,
+        -0.6
+      ],
+      "measured_forward_mps": 0.011,
+      "measured_yaw_rate_rps": -0.505,
+      "fell": false
+    },
+    {
+      "command": [
+        0.0,
+        0.0
+      ],
+      "measured_forward_mps": -0.0,
+      "measured_yaw_rate_rps": 0.0,
+      "fell": false
+    },
+    {
+      "command": [
+        0.0,
+        0.6
+      ],
+      "measured_forward_mps": 0.022,
+      "measured_yaw_rate_rps": 0.494,
+      "fell": false
+    },
+    {
+      "command": [
+        0.0,
+        1.2
+      ],
+      "measured_forward_mps": 0.012,
+      "measured_yaw_rate_rps": 1.168,
+      "fell": false
+    },
+    {
+      "command": [
+        0.2,
+        -1.2
+      ],
+      "measured_forward_mps": 0.205,
+      "measured_yaw_rate_rps": -1.148,
+      "fell": false
+    },
+    {
+      "command": [
+        0.2,
+        -0.6
+      ],
+      "measured_forward_mps": 0.19,
+      "measured_yaw_rate_rps": -0.507,
+      "fell": false
+    },
+    {
+      "command": [
+        0.2,
+        0.0
+      ],
+      "measured_forward_mps": 0.159,
+      "measured_yaw_rate_rps": -0.014,
+      "fell": false
+    },
+    {
+      "command": [
+        0.2,
+        0.6
+      ],
+      "measured_forward_mps": 0.206,
+      "measured_yaw_rate_rps": 0.484,
+      "fell": false
+    },
+    {
+      "command": [
+        0.2,
+        1.2
+      ],
+      "measured_forward_mps": 0.187,
+      "measured_yaw_rate_rps": 1.166,
+      "fell": false
+    },
+    {
+      "command": [
+        0.4,
+        -1.2
+      ],
+      "measured_forward_mps": 0.353,
+      "measured_yaw_rate_rps": -1.132,
+      "fell": false
+    },
+    {
+      "command": [
+        0.4,
+        -0.6
+      ],
+      "measured_forward_mps": 0.369,
+      "measured_yaw_rate_rps": -0.513,
+      "fell": false
+    },
+    {
+      "command": [
+        0.4,
+        0.0
+      ],
+      "measured_forward_mps": 0.356,
+      "measured_yaw_rate_rps": -0.019,
+      "fell": false
+    },
+    {
+      "command": [
+        0.4,
+        0.6
+      ],
+      "measured_forward_mps": 0.388,
+      "measured_yaw_rate_rps": 0.48,
+      "fell": false
+    },
+    {
+      "command": [
+        0.4,
+        1.2
+      ],
+      "measured_forward_mps": 0.359,
+      "measured_yaw_rate_rps": 1.161,
+      "fell": false
+    },
+    {
+      "command": [
+        0.6,
+        -1.2
+      ],
+      "measured_forward_mps": 0.517,
+      "measured_yaw_rate_rps": -1.131,
+      "fell": false
+    },
+    {
+      "command": [
+        0.6,
+        -0.6
+      ],
+      "measured_forward_mps": 0.547,
+      "measured_yaw_rate_rps": -0.515,
+      "fell": false
+    },
+    {
+      "command": [
+        0.6,
+        0.0
+      ],
+      "measured_forward_mps": 0.543,
+      "measured_yaw_rate_rps": -0.018,
+      "fell": false
+    },
+    {
+      "command": [
+        0.6,
+        0.6
+      ],
+      "measured_forward_mps": 0.573,
+      "measured_yaw_rate_rps": 0.491,
+      "fell": false
+    },
+    {
+      "command": [
+        0.6,
+        1.2
+      ],
+      "measured_forward_mps": 0.538,
+      "measured_yaw_rate_rps": 1.142,
+      "fell": false
+    }
+  ],
+  "pushes": [
+    {
+      "trial": "push blue",
+      "mass_kg": 1.0,
+      "command_forward_mps": 0.5,
+      "rule": "displacement >= 0.1 m",
+      "successes": 5,
+      "falls": 0,
+      "runs": [
+        {
+          "approach_deg": -30,
+          "box_displacement_m": 1.4808,
+          "contact_samples": 807,
+          "fell": false
+        },
+        {
+          "approach_deg": -15,
+          "box_displacement_m": 1.5567,
+          "contact_samples": 766,
+          "fell": false
+        },
+        {
+          "approach_deg": 0,
+          "box_displacement_m": 1.6029,
+          "contact_samples": 759,
+          "fell": false
+        },
+        {
+          "approach_deg": 15,
+          "box_displacement_m": 1.2292,
+          "contact_samples": 885,
+          "fell": false
+        },
+        {
+          "approach_deg": 30,
+          "box_displacement_m": 1.2544,
+          "contact_samples": 879,
+          "fell": false
+        }
+      ]
+    },
+    {
+      "trial": "push red",
+      "mass_kg": 20.0,
+      "command_forward_mps": 0.5,
+      "rule": "contacted and displacement <= 0.05 m",
+      "successes": 5,
+      "falls": 0,
+      "runs": [
+        {
+          "approach_deg": -30,
+          "box_displacement_m": 0.0381,
+          "contact_samples": 853,
+          "fell": false
+        },
+        {
+          "approach_deg": -15,
+          "box_displacement_m": 0.0389,
+          "contact_samples": 853,
+          "fell": false
+        },
+        {
+          "approach_deg": 0,
+          "box_displacement_m": 0.0448,
+          "contact_samples": 910,
+          "fell": false
+        },
+        {
+          "approach_deg": 15,
+          "box_displacement_m": 0.0348,
+          "contact_samples": 911,
+          "fell": false
+        },
+        {
+          "approach_deg": 30,
+          "box_displacement_m": 0.0327,
+          "contact_samples": 871,
+          "fell": false
+        }
+      ]
+    }
+  ],
+  "reset_repeatability": {
+    "requested": [
+      -0.5,
+      0.3,
+      0.7
+    ],
+    "settled": "10/10",
+    "mean_offset_m": 0.0121,
+    "mean_yaw_offset_rad": -0.0048,
+    "std_xy_m": [
+      0.00203,
+      0.00147
+    ],
+    "std_yaw_rad": 0.00698,
+    "settle_s_mean_max": [
+      1.288,
+      1.42
+    ],
+    "distinct_first_frames": 10,
+    "note": "same requested pose; new scenario_seed (joint perturbation) per repeat"
+  },
+  "camera": {
+    "points_checked": 2696,
+    "points_outside": []
+  },
+  "throughput": {
+    "blocks": 460,
+    "block_wall_s_total": 9.08,
+    "blocks_per_wall_s": 50.65,
+    "script_wall_s": 11.4
+  },
+  "environment": {
+    "python": "3.12.4",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "mujoco": "3.3.4",
+    "numpy": "2.5.3"
+  },
+  "exit_code": 0,
+  "completion_state": "complete"
+}
