@@ -283,6 +283,17 @@ Template:
 - Evidence: `src/go2wm/data/g1.py`, `scripts/collect_g1_packet.py`, `scripts/verify_g1_packet.py`, and the retained real packet to be added.
 - Supersedes / superseded by: supplements D-017; does not replace the original G1 dimOS criterion.
 
+### D-031 — Permit one disclosed training-only state auxiliary after the plain LeWM G3 failure
+
+- Status: Implemented as an optional diagnostic; task-performance result pending
+- Date / gate: 2026-09-20 / G2-G3 repair
+- Owners acknowledging: ML implementation under the build specification; both human owners must acknowledge any final auxiliary-trained bundle
+- Decision: keep the reviewed LeWM prediction and SIGReg losses unchanged, and optionally add a small MLP loss from each RGB embedding to normalized robot pose and box positions. Fit normalization and gradients from aligned training-split labels only. Validation labels report the auxiliary loss but never update weights or normalization. The head is training-only and is not loaded by runtime planning.
+- Rationale: the 111-episode direct-MjLab wave passed alignment, visibility, coverage, leakage, and baseline learnability checks, but the plain 1,150-step LeWM run remained action-blind and its frozen linear readouts were far worse than the pooled-pixel baseline. The original build specification explicitly permits a modest supervised pose/object-position auxiliary after these checks fail.
+- Consequences: every auxiliary run records its weight, hidden width, target names, and train-only normalization in `run_config.json`; resume refuses a mismatch. Runtime inputs remain RGB plus action history and candidate actions. This changes one training component only; multistep loss is deferred until the auxiliary result is known. Any resulting encoder requires newly fitted readouts, surprise calibration, bundle ID, and full G2/G3 reevaluation.
+- Evidence: `src/go2wm/learning/lewm_train.py`, focused cache/gradient tests, and the real-run artifact to be retained after the diagnostic.
+- Supersedes / superseded by: resolves the next experiment for P-009; does not resolve P-010 or waive G3.
+
 ## 3. Assumption register
 
 Every row begins unverified. Change status only with a direct evidence link.

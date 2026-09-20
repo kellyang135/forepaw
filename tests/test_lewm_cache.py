@@ -20,6 +20,7 @@ from go2wm.learning.lewm_cache import (
     check_disjoint,
     clip_starts,
     read_training_cache,
+    state_statistics,
 )
 from go2wm.learning.windows import episode_sequence
 
@@ -160,6 +161,17 @@ def test_action_statistics_are_train_only_and_unbiased(tmp_path: Path) -> None:
     with pytest.raises(CacheError, match="train split only"):
         action_statistics(val)
     check_disjoint([cache, val])
+
+
+def test_state_statistics_use_only_aligned_train_labels(tmp_path: Path) -> None:
+    cache, _ = _cache(tmp_path)
+    mean, scale = state_statistics(cache)
+    rows = cache.state[np.isfinite(cache.state).all(axis=1)]
+    assert np.allclose(mean, rows.mean(axis=0), atol=1e-6)
+    assert np.all(np.asarray(scale) > 0)
+    val, _ = _cache(tmp_path, name="val", split=DatasetSplit.VALIDATION)
+    with pytest.raises(CacheError, match="train split only"):
+        state_statistics(val)
 
 
 def test_disjointness_catches_shared_episodes(tmp_path: Path) -> None:

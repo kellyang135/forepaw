@@ -146,6 +146,26 @@ timings, not the model.
 6. Record the run in the ledger: run dir, `run_config.json`, `summary.json`,
    the eval `ml_report.json`, and the bundle id.
 
+### Optional G2 repair: training-only state auxiliary
+
+Use this only after the plain LeWM run has passed synchronization, visibility,
+coverage, and non-collapse checks but its real-frame readouts remain inadequate.
+It is the single-component repair allowed by D-031 and the build specification:
+
+```bash
+python -m go2wm.learning.lewm_train \
+    --train-cache $R/cache-train --val-cache $R/cache-validation \
+    --out $R/lewm-aux --epochs 10 --batch-size 32 \
+    --aux-state-weight 0.1 --aux-hidden-dim 128
+```
+
+The auxiliary head sees aligned training labels only. Its normalization is fit
+on the training cache, its loss is logged as `aux_state_loss`, and its weights
+exist only in `state_last.pt` so a run can resume. Published runtime checkpoints
+contain the RGB/action LeWM weights, not the head; poses and box labels remain
+forbidden runtime inputs. Changing the auxiliary weight or width requires a new
+run. Refit every readout and surprise threshold before evaluating the result.
+
 ## 6. Reading the training output
 
 Every epoch prints one line and appends to `metrics.jsonl` (numbers below are illustrative):
@@ -162,13 +182,14 @@ Every epoch prints one line and appends to `metrics.jsonl` (numbers below are il
 | `action path` | grows from 0 | stays near 0: the AdaLN action conditioning is not training |
 | `emb std` mean/min | stays well above 0 | shrinks toward 0: representation collapse; check SIGReg loss and data variety |
 | `sigreg` | falls and stays bounded | explodes: lower lr, check for corrupted frames |
+| `aux` (when enabled) | train and validation fall without a widening gap | train falls while validation rises: auxiliary overfit; do not select on test data |
 | non-finite loss | never | the run stops itself with exit code 2 and logs the step |
 
 Checkpoints: `checkpoints/epoch_NNN.pt` (weights-only), `checkpoints/index.json`
 (SHA-256, val losses, `best`, `last`), `state_last.pt` (for `--resume`),
 `run_config.json` (everything needed to rebuild the model), `summary.json`.
-`--resume` refuses if the architecture, loss, action statistics, data, LeWM
-commit, or seed changed.
+`--resume` refuses if the architecture, loss, action statistics, auxiliary
+configuration, data, LeWM commit, or seed changed.
 
 `best` is chosen on validation prediction loss only. G3 is decided by
 `lewm-eval`, not by the training loss.

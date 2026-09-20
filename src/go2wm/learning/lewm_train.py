@@ -48,6 +48,7 @@ from .lewm_cache import (
     action_statistics,
     check_disjoint,
     read_training_cache,
+    state_statistics,
 )
 
 RUN_SCHEMA = lm.CHECKPOINT_FORMAT
@@ -66,6 +67,7 @@ class ClipDataset(Dataset):
         num_steps: int,
         stats: lm.ActionStats,
         *,
+        state_stats: tuple[tuple[float, ...], tuple[float, ...]] | None = None,
         limit: int | None = None,
     ) -> None:
         self.pixels_path = cache.root / "pixels.npy"
@@ -78,6 +80,20 @@ class ClipDataset(Dataset):
         mean = np.asarray(stats.mean, dtype=np.float32)
         std = np.asarray(stats.std, dtype=np.float32)
         self.actions = np.nan_to_num((cache.action - mean) / std, nan=0.0).astype(np.float32)
+        self.state: np.ndarray | None = None
+        self.state_valid: np.ndarray | None = None
+        if state_stats is not None:
+            state_mean = np.asarray(state_stats[0], dtype=np.float32)
+            state_scale = np.asarray(state_stats[1], dtype=np.float32)
+            if cache.state.shape[1] != len(state_mean) or state_mean.shape != state_scale.shape:
+                raise ValueError("state normalization does not match the cache target dimension")
+            self.state_valid = np.isfinite(cache.state).all(axis=1)
+            self.state = np.nan_to_num(
+                (cache.state - state_mean) / state_scale,
+                nan=0.0,
+                posinf=0.0,
+                neginf=0.0,
+            ).astype(np.float32)
         self._pixels: np.ndarray | None = None
 
     def __getstate__(self) -> dict[str, Any]:
@@ -94,10 +110,44 @@ class ClipDataset(Dataset):
         start = int(self.starts[index])
         end = start + self.num_steps
         pixels = np.array(self._pixels[start:end], copy=True)
-        return {
+        result = {
             "pixels": torch.from_numpy(pixels).permute(0, 3, 1, 2),
             "action": torch.from_numpy(self.actions[start:end]),
         }
+        if self.state is not None and self.state_valid is not None:
+            result["state"] = torch.from_numpy(self.state[start:end])
+            result["state_valid"] = torch.from_numpy(self.state_valid[start:end])
+        return result
+
+
+def build_auxiliary_head(input_dim: int, output_dim: int, hidden_dim: int) -> torch.nn.Module:
+    """Small training-only state head; it is never part of runtime inference."""
+
+    if input_dim < 1 or output_dim < 1 or hidden_dim < 1:
+        raise ValueError("auxiliary head dimensions must be positive")
+    return torch.nn.Sequential(
+        torch.nn.Linear(input_dim, hidden_dim),
+        torch.nn.GELU(),
+        torch.nn.Linear(hidden_dim, output_dim),
+    )
+
+
+def auxiliary_state_loss(
+    head: torch.nn.Module,
+    embeddings: torch.Tensor,
+    batch: dict[str, torch.Tensor],
+    device: torch.device,
+) -> torch.Tensor:
+    """Normalized pose/object MSE on aligned labels from the current split."""
+
+    if "state" not in batch or "state_valid" not in batch:
+        raise ValueError("auxiliary state loss requires state targets and a validity mask")
+    valid = batch["state_valid"].to(device)
+    if not bool(valid.any()):
+        raise ValueError("auxiliary state loss batch has no aligned labels")
+    targets = batch["state"].to(device)
+    predictions = head(embeddings)
+    return (predictions[valid] - targets[valid]).pow(2).mean()
 
 
 def warmup_cosine(step: int, *, total_steps: int, warmup_steps: int) -> float:
@@ -126,6 +176,8 @@ def validate(
     *,
     max_batches: int | None,
     seed: int,
+    auxiliary_head: torch.nn.Module | None = None,
+    auxiliary_weight: float = 0.0,
 ) -> dict[str, float]:
     """Mean losses plus three references: shuffled actions, copy-last-latent, spread.
 
@@ -142,6 +194,7 @@ def validate(
         "loss": 0.0,
         "shuffled_pred_loss": 0.0,
         "copy_last_loss": 0.0,
+        "aux_state_loss": 0.0,
     }
     embeddings: list[torch.Tensor] = []
     batches = 0
@@ -151,8 +204,15 @@ def validate(
         pixels = lm.preprocess_pixels(batch["pixels"].to(device))
         actions = batch["action"].to(device)
         out = lm.lejepa_losses(model, sigreg, pixels, actions, arch, loss_cfg)
-        for key in ("pred_loss", "sigreg_loss", "loss"):
-            totals[key] += out[key].item()
+        aux_loss = (
+            auxiliary_state_loss(auxiliary_head, out["emb"], batch, device)
+            if auxiliary_head is not None
+            else out["loss"].new_zeros(())
+        )
+        totals["pred_loss"] += out["pred_loss"].item()
+        totals["sigreg_loss"] += out["sigreg_loss"].item()
+        totals["aux_state_loss"] += aux_loss.item()
+        totals["loss"] += (out["loss"] + auxiliary_weight * aux_loss).item()
         # "Nothing changes" reference in latent space: predict emb[t+1] = emb[t].
         totals["copy_last_loss"] += (
             (out["emb"][:, : arch.history_frames] - out["emb"][:, arch.num_preds :])
@@ -291,6 +351,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--device", default="auto", help="auto | mps | cuda | cpu")
     parser.add_argument("--seed", type=int, default=3072)
+    parser.add_argument(
+        "--aux-state-weight",
+        type=float,
+        default=0.0,
+        help="training-only normalized pose/object auxiliary weight (0 = disabled)",
+    )
+    parser.add_argument(
+        "--aux-hidden-dim",
+        type=int,
+        default=128,
+        help="hidden width of the training-only state auxiliary head",
+    )
     parser.add_argument("--max-steps", type=int, default=None, help="stop early (smoke tests)")
     parser.add_argument("--val-max-batches", type=int, default=None)
     parser.add_argument("--log-every", type=int, default=20)
@@ -342,11 +414,22 @@ def main(argv: list[str] | None = None) -> int:
         )
     mean, std = action_statistics(train_cache)
     stats = lm.ActionStats(mean, std)
+    if args.aux_state_weight < 0:
+        raise SystemExit("--aux-state-weight must be non-negative")
+    if args.aux_hidden_dim < 1:
+        raise SystemExit("--aux-hidden-dim must be positive")
+    auxiliary_enabled = args.aux_state_weight > 0
+    auxiliary_stats = state_statistics(train_cache) if auxiliary_enabled else None
+    if (
+        auxiliary_enabled
+        and train_cache.manifest["state_names"] != val_cache.manifest["state_names"]
+    ):
+        raise SystemExit("train and validation caches have different state targets")
     device = lm.pick_device(args.device)
     seed_everything(args.seed)
 
-    train_ds = ClipDataset(train_cache, arch.num_steps, stats)
-    val_ds = ClipDataset(val_cache, arch.num_steps, stats)
+    train_ds = ClipDataset(train_cache, arch.num_steps, stats, state_stats=auxiliary_stats)
+    val_ds = ClipDataset(val_cache, arch.num_steps, stats, state_stats=auxiliary_stats)
     generator = torch.Generator().manual_seed(args.seed)
     loader_kwargs: dict[str, Any] = {"num_workers": args.num_workers}
     if args.num_workers > 0:
@@ -377,7 +460,17 @@ def main(argv: list[str] | None = None) -> int:
 
     model = lm.build_model(arch, src).to(device)
     sigreg = lm.build_sigreg(loss_cfg, src).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    auxiliary_head = (
+        build_auxiliary_head(arch.embed_dim, train_cache.state.shape[1], args.aux_hidden_dim).to(
+            device
+        )
+        if auxiliary_enabled
+        else None
+    )
+    parameters = list(model.parameters())
+    if auxiliary_head is not None:
+        parameters.extend(auxiliary_head.parameters())
+    optimizer = torch.optim.AdamW(parameters, lr=args.lr, weight_decay=args.weight_decay)
     steps_per_epoch = min(len(train_loader), args.overfit_batches or len(train_loader))
     total_steps = steps_per_epoch * args.epochs
     if args.max_steps is not None:
@@ -410,6 +503,16 @@ def main(argv: list[str] | None = None) -> int:
             "precision": "fp32",
         },
         "action_stats": {"mean": list(stats.mean), "std": list(stats.std), "source": "train cache"},
+        "auxiliary": {
+            "enabled": auxiliary_enabled,
+            "kind": "train_only_state_mlp",
+            "weight": args.aux_state_weight,
+            "hidden_dim": args.aux_hidden_dim,
+            "state_names": train_cache.manifest["state_names"] if auxiliary_enabled else [],
+            "state_mean": list(auxiliary_stats[0]) if auxiliary_stats is not None else [],
+            "state_scale": list(auxiliary_stats[1]) if auxiliary_stats is not None else [],
+            "runtime_inputs_unchanged": True,
+        },
         "data": {
             "dataset_id": train_cache.manifest["dataset_id"],
             "split_id": train_cache.manifest["split_id"],
@@ -450,7 +553,15 @@ def main(argv: list[str] | None = None) -> int:
         if not state_path.is_file():
             raise SystemExit(f"--resume given but {state_path} does not exist")
         previous = json.loads((out / "run_config.json").read_text(encoding="utf-8"))
-        for key in ("architecture", "loss", "action_stats", "data", "lewm", "seed"):
+        for key in (
+            "architecture",
+            "loss",
+            "action_stats",
+            "auxiliary",
+            "data",
+            "lewm",
+            "seed",
+        ):
             if key == "data":
                 same = {
                     k: previous[key][k] for k in ("dataset_id", "split_id", "train_cache_files")
@@ -463,6 +574,10 @@ def main(argv: list[str] | None = None) -> int:
                 raise SystemExit(f"--resume refused: {key} differs from the original run")
         state = torch.load(state_path, map_location="cpu", weights_only=True)
         model.load_state_dict(state["model"])
+        if auxiliary_head is not None:
+            if "auxiliary_head" not in state:
+                raise SystemExit("--resume refused: state has no auxiliary head")
+            auxiliary_head.load_state_dict(state["auxiliary_head"])
         optimizer.load_state_dict(state["optimizer"])
         scheduler.load_state_dict(state["scheduler"])
         start_epoch = int(state["epoch"]) + 1
@@ -482,6 +597,12 @@ def main(argv: list[str] | None = None) -> int:
         f"{steps_per_epoch} steps/epoch x {args.epochs} epochs (total {total_steps})",
         flush=True,
     )
+    if auxiliary_head is not None:
+        print(
+            f"training-only state auxiliary enabled: weight {args.aux_state_weight:g}, "
+            f"hidden {args.aux_hidden_dim}, targets {train_cache.state.shape[1]}",
+            flush=True,
+        )
 
     overfit_batches: list[dict[str, torch.Tensor]] | None = None
     if args.overfit_batches:
@@ -497,7 +618,12 @@ def main(argv: list[str] | None = None) -> int:
         model.train()
         epoch_start = time.perf_counter()
         seen = 0
-        running: dict[str, float] = {"loss": 0.0, "pred_loss": 0.0, "sigreg_loss": 0.0}
+        running: dict[str, float] = {
+            "loss": 0.0,
+            "pred_loss": 0.0,
+            "sigreg_loss": 0.0,
+            "aux_state_loss": 0.0,
+        }
         batches = overfit_batches if overfit_batches is not None else train_loader
         for batch in batches:
             if global_step >= total_steps:
@@ -506,7 +632,12 @@ def main(argv: list[str] | None = None) -> int:
             pixels = lm.preprocess_pixels(batch["pixels"].to(device, non_blocking=True))
             actions = batch["action"].to(device, non_blocking=True)
             out_losses = lm.lejepa_losses(model, sigreg, pixels, actions, arch, loss_cfg)
-            loss = out_losses["loss"]
+            aux_loss = (
+                auxiliary_state_loss(auxiliary_head, out_losses["emb"], batch, device)
+                if auxiliary_head is not None
+                else out_losses["loss"].new_zeros(())
+            )
+            loss = out_losses["loss"] + args.aux_state_weight * aux_loss
             if not torch.isfinite(loss):
                 _append_jsonl(
                     metrics_path,
@@ -516,19 +647,22 @@ def main(argv: list[str] | None = None) -> int:
                         "epoch": epoch,
                         "pred_loss": out_losses["pred_loss"].detach().item(),
                         "sigreg_loss": out_losses["sigreg_loss"].detach().item(),
+                        "aux_state_loss": aux_loss.detach().item(),
                     },
                 )
                 print(f"non-finite loss at step {global_step}; stopping", flush=True)
                 return 2
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
-            grad_norm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip))
+            grad_norm = float(torch.nn.utils.clip_grad_norm_(parameters, args.grad_clip))
             optimizer.step()
             scheduler.step()
             global_step += 1
             seen += pixels.shape[0]
-            for key in running:
-                running[key] += out_losses[key].detach().item()
+            running["loss"] += loss.detach().item()
+            running["pred_loss"] += out_losses["pred_loss"].detach().item()
+            running["sigreg_loss"] += out_losses["sigreg_loss"].detach().item()
+            running["aux_state_loss"] += aux_loss.detach().item()
             if global_step % args.log_every == 0 or global_step == 1:
                 elapsed = time.perf_counter() - epoch_start
                 record = {
@@ -538,14 +672,21 @@ def main(argv: list[str] | None = None) -> int:
                     "loss": loss.detach().item(),
                     "pred_loss": out_losses["pred_loss"].detach().item(),
                     "sigreg_loss": out_losses["sigreg_loss"].detach().item(),
+                    "aux_state_loss": aux_loss.detach().item(),
                     "grad_norm": grad_norm,
                     "lr": scheduler.get_last_lr()[0],
                     "clips_per_s": seen / max(elapsed, 1e-9),
                 }
                 _append_jsonl(metrics_path, record)
+                aux_text = (
+                    f"aux {record['aux_state_loss']:.3f} "
+                    if auxiliary_head is not None
+                    else ""
+                )
                 print(
                     f"epoch {epoch} step {global_step}/{total_steps} loss {record['loss']:.4f} "
                     f"(pred {record['pred_loss']:.4f}, sigreg {record['sigreg_loss']:.3f}) "
+                    f"{aux_text}"
                     f"lr {record['lr']:.2e} {record['clips_per_s']:.1f} clips/s",
                     flush=True,
                 )
@@ -566,6 +707,8 @@ def main(argv: list[str] | None = None) -> int:
             device,
             max_batches=args.val_max_batches,
             seed=args.seed + epoch,
+            auxiliary_head=auxiliary_head,
+            auxiliary_weight=args.aux_state_weight,
         )
         name = f"epoch_{epoch:03d}.pt"
         sha = lm.save_weights(checkpoints / name, model)
@@ -587,6 +730,11 @@ def main(argv: list[str] | None = None) -> int:
                 "model": {k: v.detach().cpu() for k, v in model.state_dict().items()},
                 "optimizer": optimizer.state_dict(),
                 "scheduler": scheduler.state_dict(),
+                "auxiliary_head": {
+                    k: v.detach().cpu() for k, v in auxiliary_head.state_dict().items()
+                }
+                if auxiliary_head is not None
+                else None,
                 "epoch": epoch,
                 "global_step": global_step,
             },
@@ -608,10 +756,14 @@ def main(argv: list[str] | None = None) -> int:
             "action_pathway_norm": action_pathway_norm(model),
         }
         _append_jsonl(metrics_path, record)
+        aux_text = (
+            f"aux {val['aux_state_loss']:.3f} | " if auxiliary_head is not None else ""
+        )
         print(
             f"== epoch {epoch}: train loss {train_means['train_loss']:.4f} | val pred "
             f"{val['pred_loss']:.4f} vs shuffled-action {val['shuffled_pred_loss']:.4f} "
             f"(gap {val['action_gap']:+.1%}), copy-last {val['copy_last_loss']:.4f} | "
+            f"{aux_text}"
             f"emb std mean {val['emb_std_mean']:.2e} min {val['emb_std_min']:.2e} | "
             f"action path {record['action_pathway_norm']:.3f} | "
             f"{epoch_seconds / 60:.1f} min" + ("  [best]" if index["best"] == name else ""),

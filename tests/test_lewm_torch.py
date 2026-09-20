@@ -150,6 +150,25 @@ def test_action_encoder_receives_gradient(src: lm.LeWMSource) -> None:
     assert action_grad() > 0.0
 
 
+def test_auxiliary_state_loss_only_uses_aligned_rows() -> None:
+    from go2wm.learning.lewm_train import auxiliary_state_loss, build_auxiliary_head
+
+    torch.manual_seed(9)
+    embeddings = torch.randn(2, 4, 192, requires_grad=True)
+    head = build_auxiliary_head(192, 9, 16)
+    valid = torch.tensor([[True, False, True, True], [False, True, True, False]])
+    batch = {
+        "state": torch.randn(2, 4, 9),
+        "state_valid": valid,
+    }
+    loss = auxiliary_state_loss(head, embeddings, batch, torch.device("cpu"))
+    assert torch.isfinite(loss)
+    loss.backward()
+    assert embeddings.grad is not None
+    assert torch.count_nonzero(embeddings.grad[valid]) > 0
+    assert torch.count_nonzero(embeddings.grad[~valid]) == 0
+
+
 def test_rollout_matches_upstream_jepa_rollout(trained) -> None:
     world = LeWMWorldModel(trained)
     episode = episode_224("ep-roll", 11, DatasetSplit.TRAIN)
@@ -256,6 +275,8 @@ def test_train_resume_eval_bundle_end_to_end(tmp_path: Path, src) -> None:
         "1",
         "--log-every",
         "1",
+        "--aux-state-weight",
+        "0.1",
     ]
     assert lewm_train.main([*common, "--epochs", "1", "--max-steps", "2"]) == 0
     index = json.loads((run / "checkpoints" / "index.json").read_text())
@@ -267,6 +288,7 @@ def test_train_resume_eval_bundle_end_to_end(tmp_path: Path, src) -> None:
     epochs = [m for m in metrics if m["event"] == "epoch"]
     assert [m["epoch"] for m in epochs] == [1, 2]
     assert all(np.isfinite(m["val_pred_loss"]) for m in epochs)
+    assert all(np.isfinite(m["val_aux_state_loss"]) for m in epochs)
 
     reloaded = lm.load_trained(run, checkpoint="last", src=src)
     assert reloaded.weights_sha256 == index["checkpoints"]["epoch_002.pt"]["sha256"]
@@ -286,7 +308,10 @@ def test_train_resume_eval_bundle_end_to_end(tmp_path: Path, src) -> None:
     )
     assert report["encoder_kind"] == "lewm"
     assert "REHEARSAL ONLY" in report["model"]
-    assert json.loads((run / "run_config.json").read_text())["rehearsal_only"] is True
+    run_config = json.loads((run / "run_config.json").read_text())
+    assert run_config["rehearsal_only"] is True
+    assert run_config["auxiliary"]["enabled"] is True
+    assert run_config["auxiliary"]["runtime_inputs_unchanged"] is True
     assert report["gate_checks"]
     bundle = load_bundle(
         report["bundle_path"],

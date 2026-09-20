@@ -37,7 +37,7 @@ import numpy as np
 
 from go2wm.contracts import DatasetSplit, EpisodeRecord, StateLabels
 
-from .readouts import TargetSpec
+from .readouts import Standardizer, TargetSpec
 from .windows import episode_sequence
 
 CACHE_SCHEMA = "go2wm.lewm-cache.v1"
@@ -306,6 +306,24 @@ def action_statistics(cache: TrainingCache) -> tuple[tuple[float, ...], tuple[fl
             "never varied it, so the model cannot learn its effect"
         )
     return tuple(rows.mean(axis=0).tolist()), tuple(std.tolist())
+
+
+def state_statistics(cache: TrainingCache) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    """Train-only normalization for the optional supervised state auxiliary.
+
+    Only completely aligned label rows participate.  Constant targets such as
+    the no-fall indicator receive the same guarded scale as the frozen readout
+    path instead of producing a divide-by-zero.  Validation labels never
+    influence these statistics.
+    """
+
+    if cache.split != DatasetSplit.TRAIN.value:
+        raise CacheError("state normalization statistics must come from the train split only")
+    rows = cache.state[np.isfinite(cache.state).all(axis=1)].astype(np.float64)
+    if len(rows) < 2:
+        raise CacheError("need at least two aligned state rows for statistics")
+    normalizer = Standardizer.fit(rows)
+    return tuple(normalizer.mean.tolist()), tuple(normalizer.scale.tolist())
 
 
 def check_disjoint(caches: Sequence[TrainingCache]) -> None:
