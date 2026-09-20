@@ -1,0 +1,321 @@
+SMOKE_START=2026-09-19T23:15:41Z
+[INFO] Training with: device=cuda:0, seed=42, rank=0
+[INFO] Logging experiment in directory: logs/rsl_rl/go2_velocity/2026-09-19_23-17-12_smoke64-seed42
+Setting seed: 42
+Warp 1.12.0 initialized:
+   CUDA Toolkit 12.9, Driver 13.0
+   Devices:
+     "cpu"      : "x86_64"
+     "cuda:0"   : "NVIDIA A40" (44 GiB, sm_86, mempool enabled)
+   Kernel cache:
+     /root/.cache/warp/1.12.0
+Warp DeprecationWarning: The symbol `warp.context.runtime` will soon be removed from the public API. It can still be accessed from `warp._src.context.runtime` but might be changed or removed without notice.
+Module mujoco_warp._src.smooth 12773d5 load on device 'cuda:0' took 9605.61 ms  (compiled)
+Module mujoco_warp._src.collision_driver 4d8b905 load on device 'cuda:0' took 238.44 ms  (compiled)
+Module _nxn_broadphase__locals__kernel_551438e6 551438e load on device 'cuda:0' took 663.09 ms  (compiled)
+Module _primitive_narrowphase__locals__primitive_narrowphase_8e09ca21 8e09ca2 load on device 'cuda:0' took 1525.37 ms  (compiled)
+Module mujoco_warp._src.constraint abf7b17 load on device 'cuda:0' took 3816.03 ms  (compiled)
+Module _actuator_velocity__locals__actuator_velocity_9d476fc0 fac4890 load on device 'cuda:0' took 974.42 ms  (compiled)
+Module mujoco_warp._src.passive f6d4bb4 load on device 'cuda:0' took 1676.78 ms  (compiled)
+Module mujoco_warp._src.sensor a122b42 load on device 'cuda:0' took 8351.19 ms  (compiled)
+Module mujoco_warp._src.forward 6f039ed load on device 'cuda:0' took 1356.36 ms  (compiled)
+Module mujoco_warp._src.support 343d1ae load on device 'cuda:0' took 401.12 ms  (compiled)
+Module _tile_cholesky_factorize_solve__locals__cholesky_factorize_solve_886404d2 159512a load on device 'cuda:0' took 8224.49 ms  (compiled)
+Module mujoco_warp._src.solver f11a68d load on device 'cuda:0' took 1844.36 ms  (compiled)
+Module solve_init_jaref__locals__kernel_6e624303 6e62430 load on device 'cuda:0' took 226.81 ms  (compiled)
+Module mul_m_dense__locals___mul_m_dense_c372b8a5 c372b8a load on device 'cuda:0' took 203.07 ms  (compiled)
+Module update_constraint_gauss_cost__locals__kernel_ef360293 ef36029 load on device 'cuda:0' took 255.54 ms  (compiled)
+Module update_gradient_JTDAJ_dense_tiled__locals__kernel_def480de c277d2e load on device 'cuda:0' took 14528.76 ms  (compiled)
+Module update_gradient_cholesky__locals__kernel_10e97a41 ebdd544 load on device 'cuda:0' took 7442.50 ms  (compiled)
+Module linesearch_jv_fused__locals__kernel_25c90185 25c9018 load on device 'cuda:0' took 222.89 ms  (compiled)
+Module linesearch_prepare_gauss__locals__kernel_7bbb5979 7bbb597 load on device 'cuda:0' took 274.51 ms  (compiled)
+Module _contact_sort__locals__contact_sort_c2bd81ce 47863e6 load on device 'cuda:0' took 1022.86 ms  (compiled)
+Module mujoco_warp._src.derivative ed5cf13 load on device 'cuda:0' took 445.72 ms  (compiled)
+Module _qderiv_actuator_passive_actuation_dense__locals__kernel_7e415bf2 3a95e7f load on device 'cuda:0' took 14543.53 ms  (compiled)
+Module reset_data__locals__reset_xfrc_applied_f86f0829 f86f082 load on device 'cuda:0' took 162.10 ms  (compiled)
+Module reset_data__locals__reset_qM_1511185b 1511185 load on device 'cuda:0' took 157.51 ms  (compiled)
+Module reset_data__locals__reset_mocap_11135362 1113536 load on device 'cuda:0' took 178.69 ms  (compiled)
+Module reset_data__locals__reset_contact_76c1c25e 76c1c25 load on device 'cuda:0' took 200.68 ms  (compiled)
+Module reset_data__locals__reset_nworld_d108b6ac d108b6a load on device 'cuda:0' took 278.25 ms  (compiled)
+
++---------------------------------+
+|         Base Environment        |
++------------------------+--------+
+| Property               | Value  |
++------------------------+--------+
+| Number of environments | 64     |
+| Environment device     | cuda:0 |
+| Environment seed       | 42     |
+| Physics step-size      | 0.005  |
+| Environment step-size  | 0.02   |
++------------------------+--------+
+
+[INFO] <EventManager> contains 3 active terms.
++-------------------------------------+
+| Active Event Terms in Mode: 'reset' |
++--------+----------------------------+
+| Index  | Name                       |
++--------+----------------------------+
+|   0    | reset_base                 |
+|   1    | reset_robot_joints         |
++--------+----------------------------+
++----------------------------------------------+
+|    Active Event Terms in Mode: 'interval'    |
++-------+------------+-------------------------+
+| Index | Name       | Interval time range (s) |
++-------+------------+-------------------------+
+|   0   | push_robot |        (5.0, 6.0)       |
++-------+------------+-------------------------+
++---------------------------------------+
+| Active Event Terms in Mode: 'startup' |
++-----------+---------------------------+
+|   Index   | Name                      |
++-----------+---------------------------+
+|     0     | foot_friction             |
+|     1     | encoder_bias              |
+|     2     | base_com                  |
++-----------+---------------------------+
++-----------------------------+
+| Domain Randomization Fields |
++-------+---------------------+
+| Index | Field Name          |
++-------+---------------------+
+|   0   | geom_friction       |
+|   1   | body_ipos           |
+|   2   | body_subtreemass    |
+|   3   | dof_invweight0      |
+|   4   | body_invweight0     |
+|   5   | tendon_length0      |
+|   6   | tendon_invweight0   |
++-------+---------------------+
+
+Module repeat_array_kernel_39317a34 b712927 load on device 'cuda:0' took 175.62 ms  (compiled)
+Module repeat_array_kernel_39317a34 b699bd8 load on device 'cuda:0' took 204.78 ms  (compiled)
+Module repeat_array_kernel_39317a34 363ede1 load on device 'cuda:0' took 235.52 ms  (compiled)
+[INFO] <CommandManager> contains 1 active terms.
++----------------------------------------+
+|          Active Command Terms          |
++-------+-------+------------------------+
+| Index | Name  |          Type          |
++-------+-------+------------------------+
+|   0   | twist | UniformVelocityCommand |
++-------+-------+------------------------+
+
+[INFO] <ActionManager> contains 1 active terms.
++---------------------------------+
+| Active Action Terms (shape: 12) |
++-------+-----------+-------------+
+| Index | Name      |   Dimension |
++-------+-----------+-------------+
+|   0   | joint_pos |          12 |
++-------+-----------+-------------+
+
+[INFO] <ObservationManager> contains 2 groups.
++-----------------------------------------------------------+
+| Active Observation Terms in Group: 'actor' (shape: (47,)) |
++--------+------------------------+-------------------------+
+| Index  | Name                   |          Shape          |
++--------+------------------------+-------------------------+
+|   0    | base_ang_vel           |      (3,)  ← 1×(3,)     |
+|   1    | projected_gravity      |      (3,)  ← 1×(3,)     |
+|   2    | command                |      (3,)  ← 1×(3,)     |
+|   3    | phase                  |      (2,)  ← 1×(2,)     |
+|   4    | joint_pos              |     (12,)  ← 1×(12,)    |
+|   5    | joint_vel              |     (12,)  ← 1×(12,)    |
+|   6    | actions                |     (12,)  ← 1×(12,)    |
++--------+------------------------+-------------------------+
++------------------------------------------------------------+
+| Active Observation Terms in Group: 'critic' (shape: (74,)) |
++--------+--------------------------+------------------------+
+| Index  | Name                     |         Shape          |
++--------+--------------------------+------------------------+
+|   0    | base_ang_vel             |     (3,)  ← 1×(3,)     |
+|   1    | projected_gravity        |     (3,)  ← 1×(3,)     |
+|   2    | command                  |     (3,)  ← 1×(3,)     |
+|   3    | phase                    |     (2,)  ← 1×(2,)     |
+|   4    | joint_pos                |    (12,)  ← 1×(12,)    |
+|   5    | joint_vel                |    (12,)  ← 1×(12,)    |
+|   6    | actions                  |    (12,)  ← 1×(12,)    |
+|   7    | base_lin_vel             |     (3,)  ← 1×(3,)     |
+|   8    | foot_height              |     (4,)  ← 1×(4,)     |
+|   9    | foot_air_time            |     (4,)  ← 1×(4,)     |
+|   10   | foot_contact             |     (4,)  ← 1×(4,)     |
+|   11   | foot_contact_forces      |    (12,)  ← 1×(12,)    |
++--------+--------------------------+------------------------+
+
+[INFO] <TerminationManager> contains 3 active terms.
++------------------------------------+
+|      Active Termination Terms      |
++-------+-----------------+----------+
+| Index | Name            | Time Out |
++-------+-----------------+----------+
+|   0   | time_out        |   True   |
+|   1   | fell_over       |  False   |
+|   2   | illegal_contact |  False   |
++-------+-----------------+----------+
+
+[INFO] <RewardManager> contains 15 active terms.
++-------------------------------------------+
+|            Active Reward Terms            |
++-------+------------------------+----------+
+| Index | Name                   |   Weight |
++-------+------------------------+----------+
+|   0   | track_linear_velocity  |      1.0 |
+|   1   | track_angular_velocity |      1.0 |
+|   2   | body_orientation_l2    |     -1.0 |
+|   3   | pose                   |      1.0 |
+|   4   | body_ang_vel           |    -0.05 |
+|   5   | angular_momentum       |   -0.025 |
+|   6   | is_terminated          |   -200.0 |
+|   7   | joint_acc_l2           | -2.5e-07 |
+|   8   | joint_pos_limits       |    -10.0 |
+|   9   | action_rate_l2         |    -0.05 |
+|   10  | foot_gait              |      0.5 |
+|   11  | foot_clearance         |     -1.0 |
+|   12  | foot_slip              |    -0.25 |
+|   13  | soft_landing           |   -0.001 |
+|   14  | stand_still            |     -1.0 |
++-------+------------------------+----------+
+
+[INFO] <CurriculumManager> contains 1 active terms.
++-------------------------+
+| Active Curriculum Terms |
++--------+----------------+
+| Index  | Name           |
++--------+----------------+
+|   0    | command_vel    |
++--------+----------------+
+
+[INFO] <MetricsManager> contains 1 active terms.
++-------------------------+
+|   Active Metrics Terms  |
++-------+-----------------+
+| Index | Name            |
++-------+-----------------+
+|   0   | mean_action_acc |
++-------+-----------------+
+
+Module mujoco_warp._src.io b0ffa0e load on device 'cuda:0' took 1717.41 ms  (compiled)
+Module _tile_cholesky_factorize__locals__cholesky_factorize_bd98e5db 78076c6 load on device 'cuda:0' took 2041.01 ms  (compiled)
+Module _tile_cholesky_solve__locals__cholesky_solve_7bd08b0a 54b9810 load on device 'cuda:0' took 1850.38 ms  (compiled)
+--------------------------------------------------------------------------------
+Resolved observation sets: 
+	 actor :  ('actor',)
+	 critic :  ('critic',)
+--------------------------------------------------------------------------------
+Actor Model: MLPModel(
+  (obs_normalizer): EmpiricalNormalization()
+  (distribution): GaussianDistribution()
+  (mlp): MLP(
+    (0): Linear(in_features=47, out_features=512, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=512, out_features=256, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=256, out_features=128, bias=True)
+    (5): ELU(alpha=1.0)
+    (6): Linear(in_features=128, out_features=12, bias=True)
+  )
+)
+Critic Model: MLPModel(
+  (obs_normalizer): EmpiricalNormalization()
+  (mlp): MLP(
+    (0): Linear(in_features=74, out_features=512, bias=True)
+    (1): ELU(alpha=1.0)
+    (2): Linear(in_features=512, out_features=256, bias=True)
+    (3): ELU(alpha=1.0)
+    (4): Linear(in_features=256, out_features=128, bias=True)
+    (5): ELU(alpha=1.0)
+    (6): Linear(in_features=128, out_features=1, bias=True)
+  )
+)
+wandb: WARNING `start_method` is deprecated and will be removed in a future version of wandb. This setting is currently non-functional and safely ignored.
+Could not find git repository in /workspace/go2-controller/venv/lib/python3.11/site-packages/rsl_rl/__init__.py. Skipping.
+Storing git diff for 'unitree_rl_mjlab' in: logs/rsl_rl/go2_velocity/2026-09-19_23-17-12_smoke64-seed42/git/unitree_rl_mjlab.diff
+################################################################################
+[1m                             Learning iteration 0/2                             [0m 
+
+                               Run name: smoke64-seed42
+                            Total steps: 1536 
+                       Steps per second: 348 
+                        Collection time: 3.719s 
+                          Learning time: 0.688s 
+                        Mean value loss: 1.1158
+                    Mean surrogate loss: 0.0020
+                      Mean entropy loss: 17.0220
+                            Mean reward: -3.26
+                    Mean episode length: 17.05
+                        Mean action std: 1.00
+   Episode_Reward/track_linear_velocity: 0.0005
+  Episode_Reward/track_angular_velocity: 0.0041
+     Episode_Reward/body_orientation_l2: -0.0001
+                    Episode_Reward/pose: 0.0069
+            Episode_Reward/body_ang_vel: -0.0015
+        Episode_Reward/angular_momentum: -0.0000
+           Episode_Reward/is_terminated: -0.0868
+            Episode_Reward/joint_acc_l2: -0.0006
+        Episode_Reward/joint_pos_limits: 0.0000
+          Episode_Reward/action_rate_l2: -0.0111
+               Episode_Reward/foot_gait: 0.0023
+          Episode_Reward/foot_clearance: -0.0011
+               Episode_Reward/foot_slip: -0.0007
+            Episode_Reward/soft_landing: -0.0006
+             Episode_Reward/stand_still: -0.0000
+        Episode_Metrics/mean_action_acc: 1.0285
+             Metrics/twist/error_vel_xy: 0.0263
+            Metrics/twist/error_vel_yaw: 0.0128
+           Episode_Termination/time_out: 0.2500
+          Episode_Termination/fell_over: 0.0000
+    Episode_Termination/illegal_contact: 0.9167
+          Metrics/angular_momentum_mean: 0.3824
+             Metrics/slip_velocity_mean: 0.2117
+             Metrics/landing_force_mean: 79.2893
+--------------------------------------------------------------------------------
+                         Iteration time: 4.41s
+                           Time elapsed: 00:00:04
+                                    ETA: 00:00:04
+
+################################################################################
+[1m                             Learning iteration 1/2                             [0m 
+
+                               Run name: smoke64-seed42
+                            Total steps: 3072 
+                       Steps per second: 1565 
+                        Collection time: 0.692s 
+                          Learning time: 0.289s 
+                        Mean value loss: 1.7821
+                    Mean surrogate loss: -0.0320
+                      Mean entropy loss: 17.0250
+                            Mean reward: -3.82
+                    Mean episode length: 26.74
+                        Mean action std: 1.00
+   Episode_Reward/track_linear_velocity: 0.0061
+  Episode_Reward/track_angular_velocity: 0.0107
+     Episode_Reward/body_orientation_l2: -0.0008
+                    Episode_Reward/pose: 0.0253
+            Episode_Reward/body_ang_vel: -0.0048
+        Episode_Reward/angular_momentum: -0.0001
+           Episode_Reward/is_terminated: -0.2000
+            Episode_Reward/joint_acc_l2: -0.0016
+        Episode_Reward/joint_pos_limits: 0.0000
+          Episode_Reward/action_rate_l2: -0.0398
+               Episode_Reward/foot_gait: 0.0080
+          Episode_Reward/foot_clearance: -0.0034
+               Episode_Reward/foot_slip: -0.0024
+            Episode_Reward/soft_landing: -0.0016
+             Episode_Reward/stand_still: -0.0002
+        Episode_Metrics/mean_action_acc: 1.9163
+             Metrics/twist/error_vel_xy: 0.0730
+            Metrics/twist/error_vel_yaw: 0.0632
+           Episode_Termination/time_out: 0.0000
+          Episode_Termination/fell_over: 0.0000
+    Episode_Termination/illegal_contact: 2.4583
+          Metrics/angular_momentum_mean: 0.3737
+             Metrics/slip_velocity_mean: 0.2222
+             Metrics/landing_force_mean: 81.2169
+--------------------------------------------------------------------------------
+                         Iteration time: 0.98s
+                           Time elapsed: 00:00:05
+                                    ETA: 00:00:00
+
+SMOKE_EXIT=0
+SMOKE_END=2026-09-19T23:18:58Z

@@ -1,0 +1,164 @@
+{
+  "schema_version": "go2wm.training-evidence.v1",
+  "run_id": "20260920T034139Z-go2-controller-training",
+  "purpose": "CUDA controller training and export evidence; not an accepted controller handoff",
+  "source": {
+    "repository": "https://github.com/unitreerobotics/unitree_rl_mjlab",
+    "revision": "1425b15f73bd4095f0df53709d7c389c3eb9e790",
+    "task": "Unitree-Go2-Flat",
+    "dirty_tree": true,
+    "dirty_details": "Only untracked Python __pycache__ directories were reported after execution; tracked source was unchanged."
+  },
+  "host": {
+    "provider": "RunPod",
+    "pod_id": "vuc7zwnol5j4n6",
+    "container_image": "runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04",
+    "python": "3.11.10",
+    "training_accelerator": "NVIDIA A40 44 GiB",
+    "training_device": "cuda:0",
+    "training_cuda_toolkit_reported_by_warp": "12.9",
+    "training_driver_reported_by_warp": "13.0",
+    "dependencies": {
+      "torch": "2.9.0+cu128",
+      "onnx": "1.23.0",
+      "mujoco": "3.5.0",
+      "warp": "1.12.0"
+    }
+  },
+  "training": {
+    "started_at_utc": "2026-09-19T23:27:03Z",
+    "completed_at_utc": "2026-09-20T03:41:39Z",
+    "reported_elapsed": "03:52:10",
+    "exit_code": 0,
+    "completion_state": "complete",
+    "seed": 42,
+    "split_id": null,
+    "num_environments": 4096,
+    "configured_iterations": 10001,
+    "final_iteration": 10000,
+    "total_steps_reported": 983138304,
+    "physics_dt_s": 0.005,
+    "controller_dt_s": 0.02,
+    "physics_substeps_per_control": 4,
+    "command_order": [
+      "forward_velocity_mps",
+      "lateral_velocity_mps",
+      "yaw_rate_rps"
+    ],
+    "project_lateral_velocity_mps": 0.0,
+    "action_semantics": "scaled_joint_position_target",
+    "action_scale": 0.25,
+    "onnx_data_mode": "self_contained"
+  },
+  "final_logged_metrics": {
+    "mean_reward": 45.94,
+    "mean_episode_length": 1000.0,
+    "mean_value_loss": 0.0076,
+    "mean_surrogate_loss": -0.0085,
+    "steps_per_second": 70256,
+    "fell_over": 0.0,
+    "illegal_contact": 0.0
+  },
+  "validation": {
+    "environment_import_smoke_passed": true,
+    "cuda_tensor_smoke_passed": true,
+    "two_iteration_training_smoke_passed": true,
+    "hundred_iteration_benchmark_passed": true,
+    "full_training_exit_zero": true,
+    "full_log_error_scan_passed": true,
+    "checkpoint_deserialization_passed": true,
+    "local_checkpoint_archive_integrity_passed": true,
+    "checkpoint_keys": [
+      "actor_state_dict",
+      "critic_state_dict",
+      "infos",
+      "iter",
+      "optimizer_state_dict"
+    ],
+    "onnx_checker_passed": true,
+    "onnx_ir_version": 8,
+    "onnx_inputs": ["obs"],
+    "onnx_outputs": ["actions"],
+    "local_onnxruntime_cpu_inference_passed": true,
+    "local_onnxruntime_input_shape": [1, 47],
+    "local_onnxruntime_output_shape": [1, 12],
+    "local_onnxruntime_output_all_finite": true,
+    "checkpoint_playback_passed": false,
+    "onnx_sim_playback_passed": false,
+    "g0_passed": false
+  },
+  "transfer": {
+    "recovery_mode": "RunPod CPU-only transfer pod",
+    "recovery_started_at_utc": "2026-09-20T03:53:47Z",
+    "recovery_stopped_at_utc": "2026-09-20T04:00:01Z",
+    "remote_archive_sha256": "97acee1f7bb2336212c429e49e177c73af3699b40e4429b4efa65e18ce3f86dc",
+    "local_archive_sha256_matched": true,
+    "all_payload_checksums_matched": true,
+    "checksums_scope": "All 11 retrieved payload files; locally authored manifest.json and notes.md are intentionally excluded.",
+    "local_layout_normalization": "Renamed the extracted configs directory to config; payload bytes and digests are unchanged."
+  },
+  "files": {
+    "checkpoint": {
+      "path": "checkpoint/model_10000.pt",
+      "sha256": "2dc44f0c9cddf488c008d513cd7a41745c65aedac0e781491304f13f43fa5dc4",
+      "bytes": 4741959
+    },
+    "policy_onnx": {
+      "path": "policy/policy.onnx",
+      "sha256": "c1f66f9b85aa1ea4231c0025fe90d8d4636288657ccee6a490fde274edcaa9bc",
+      "bytes": 763834
+    },
+    "agent_config": {
+      "path": "config/agent.yaml",
+      "sha256": "5b41e40ac1764905c69fcb8e829eb42d9380fe8b205a2d03d665e5f6a73bc24a",
+      "bytes": 1042
+    },
+    "environment_config": {
+      "path": "config/env.yaml",
+      "sha256": "7baa7d38ea603bbb69e45fcc6a57cdb9c0fa2cbf1c483c6270fc8053a2cd82a0",
+      "bytes": 36465
+    },
+    "deployment_config": {
+      "path": "config/deploy.yaml",
+      "sha256": "09678aa4748c2fc152607a1d61f044f69569f165b52c589bc6f03c5cb098853b",
+      "bytes": 1503
+    },
+    "robot_xml": {
+      "path": "source/go2.xml",
+      "sha256": "077fc7f70ce2ddcfdab814aa0800efa2c974db6c98594b2f7663f779509fb912",
+      "bytes": 11233
+    },
+    "training_log": {
+      "path": "logs/training-full.log",
+      "sha256": "eeff5fb8213a9ddd860dff5ab666dc2573eccbbf7a3946b76ec08984197ae346",
+      "bytes": 21070907
+    },
+    "benchmark_log": {
+      "path": "logs/training-benchmark.log",
+      "sha256": "e966357b013746ce0ec5149a3a986a41f5036a02df54b1cffec03f27e5629f15",
+      "bytes": 222939
+    },
+    "training_smoke_log": {
+      "path": "logs/training-smoke.log",
+      "sha256": "8ec38f7d30546b2e35b7109359361027c3c1b1c15be8c6b883751cfd5a877b37",
+      "bytes": 16424
+    },
+    "import_smoke_log": {
+      "path": "logs/import-smoke.log",
+      "sha256": "7159a0d7d20c190944c8934590ce7be48c000d1e0e76ea26fa41676468d0dde6",
+      "bytes": 72
+    },
+    "cuda_smoke_log": {
+      "path": "logs/pytorch-gpu-smoke.log",
+      "sha256": "56b519484139303c34c326bae2cbd1fa28c6ff1c685a3c1570a9994b1492c76d",
+      "bytes": 129
+    }
+  },
+  "limitations": [
+    "The selected checkpoint has not been played back in the upstream simulator.",
+    "The ONNX export has not been exercised through the upstream simulation deployment path.",
+    "Final logged training metrics are diagnostics, not locomotion or task-performance evidence.",
+    "This directory intentionally does not satisfy go2wm.go2-controller-handoff.v1 until both playback checks pass.",
+    "Gate G0, the project adapter, scene physics, dimOS transport, and live task performance remain unverified."
+  ]
+}

@@ -116,7 +116,6 @@ creation, stepping, optimization, checkpointing, and ONNX export:
 
 ```bash
 python scripts/train.py Unitree-Go2-Flat \
-  --gpu-ids 0 \
   --env.scene.num-envs=64 \
   --agent.seed=42 \
   --agent.max-iterations=2 2>&1 | tee training-smoke.log
@@ -131,10 +130,14 @@ pinned Go2 PPO config defaults to 10001 iterations:
 
 ```bash
 python scripts/train.py Unitree-Go2-Flat \
-  --gpu-ids 0 \
   --env.scene.num-envs=4096 \
   --agent.seed=42 2>&1 | tee training-full-seed42.log
 ```
+
+At the pinned revision, the single-GPU default is already `[0]`; two attempted
+forms of `--gpu-ids 0` were rejected by Tyro before any environment was created.
+Omitting the flag selected `cuda:0` and is the verified command shape. Re-check
+`--help` before reusing this on a different revision.
 
 Treat 4096 as a starting point, not a guarantee that it fits every GPU. If an
 out-of-memory error occurs, reduce only `num-envs`, record the new value and the

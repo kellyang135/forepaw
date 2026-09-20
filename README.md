@@ -4,12 +4,17 @@ Predictive control for a simulated Unitree Go2: use a compact visual world model
 to compare push, detour, adjustment, and stop futures, execute one 0.5-second
 block, observe the result, and replan.
 
-> **Current status:** Gate G0 blocked on a compatible true-Go2 gait/controller.
-> The official Go2 MJCF and 224×224 MuJoCo renderer are locally verified, while
-> motion, task physics, trained-model quality, CUDA, and dimOS deployment are not.
+> **Current status:** Gate G0 remains blocked pending checkpoint and ONNX
+> simulator playback plus the required motion trials. CUDA training/export at
+> the pinned upstream revision completed successfully; the final checkpoint,
+> self-contained ONNX export, configs, XML, and logs are retained in
+> [`artifacts/runs/20260920T034139Z-go2-controller-training/`](artifacts/runs/20260920T034139Z-go2-controller-training/).
+> This proves the training/export path, not gait quality, G0, task physics, or
+> dimOS deployment.
 
-Latest local software verification (2026-09-19): **133 tests passed**, Ruff and
-all CLI/protocol smoke checks passed, and measured line coverage was **85.67%**.
+Latest full-tree local software verification (2026-09-20): **161 tests passed,
+17 skipped**; Ruff and all CLI/protocol smoke checks passed. The skips include
+unavailable optional dependencies, headless OpenGL, and real-controller paths.
 These figures are software-contract evidence, not a passing Go2 simulator gate.
 
 ## The two-person split
@@ -36,6 +41,9 @@ blockers, and recovery sequence are in
 The exact Linux/NVIDIA controller-training, playback, handoff, and integration
 procedure is in
 [`docs/GO2_CONTROLLER_RECOVERY.md`](docs/GO2_CONTROLLER_RECOVERY.md).
+The completed CUDA training/export result and its remaining acceptance work are
+summarized in
+[`artifacts/runs/20260920T034139Z-go2-controller-training/notes.md`](artifacts/runs/20260920T034139Z-go2-controller-training/notes.md).
 
 ## Quick start
 

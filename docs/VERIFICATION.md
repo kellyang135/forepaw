@@ -2,7 +2,7 @@
 
 ## 1. Scope
 
-This protocol distinguishes “implemented” from “verified.” All thresholds are **PROPOSED** until the G1 data-contract freeze unless otherwise marked. The dependency-light scaffold has unit-test results, but no real MuJoCo, Go2, trained-model, CUDA-latency, or dimOS-path results currently exist in this repository.
+This protocol distinguishes “implemented” from “verified.” All thresholds are **PROPOSED** until the G1 data-contract freeze unless otherwise marked. The repository now retains a completed CUDA Go2-controller training/export run at [`artifacts/runs/20260920T034139Z-go2-controller-training/`](../artifacts/runs/20260920T034139Z-go2-controller-training/). That evidence verifies the pinned training and export path only. Checkpoint playback, ONNX simulator playback, project-scene locomotion, trained-model quality, CUDA latency, G0, and dimOS remain unverified.
 
 The final report must separate:
 
@@ -30,7 +30,7 @@ Every reported run requires:
 - artifact checksums;
 - exit code and completion state.
 
-Evidence directory convention (to be implemented by the repository scaffold):
+Evidence directory convention:
 
 ```text
 artifacts/runs/<run_id>/
